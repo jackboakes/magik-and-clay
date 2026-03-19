@@ -11,8 +11,23 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 
 if(WIN32)
+
 	add_executable(${PROJECT_NAME} WIN32 src/win32/win_main.cpp)
+
+	target_include_directories(${PROJECT_NAME} PRIVATE include/ third_party/stb)
+	target_link_libraries(${PROJECT_NAME} PRIVATE
+        d3d11.lib
+        dxgi.lib
+        d3dcompiler.lib
+		winmm.lib
+        dxguid.lib)
+elseif(APPLE)
+# 
+elseif(UNIX)
+# 
 endif()
+
+
 
 
 if(MSVC)
