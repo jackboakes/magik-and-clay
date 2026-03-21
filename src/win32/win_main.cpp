@@ -1,7 +1,6 @@
-#ifndef UNICODE
 #define UNICODE
-#endif 
 
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <d3d11.h>
 #include <dxgi1_3.h>
@@ -10,188 +9,257 @@
 #include <DirectXMath.h>
 #include <string>
 
-struct D3D11Context
+// TODO:: W32_D3d11 globals maybe make the globals a struct like the window?
+namespace D3D11
 {
-	Microsoft::WRL::ComPtr<ID3D11Device>           device; // Object to create buffers, textures, samplers, shaders etc
-	Microsoft::WRL::ComPtr<ID3D11DeviceContext>    deviceContext; // issues draw and compute commands to GPU
-	Microsoft::WRL::ComPtr<IDXGISwapChain1>        swapChain; // Stores render data
-	Microsoft::WRL::ComPtr<IDXGIFactory2>          dxgiFactory; // Helps find the adapter to run graphics on
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> renderTarget; 
-};
+    //static HMODULE dxgiModule;
+    //static HMODULE d3d11Module;
+    //static HMODULE d3compilerModule;
 
-static D3D11Context gfx;
+    static Microsoft::WRL::ComPtr<ID3D11Device> device;
+    static Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
+    static Microsoft::WRL::ComPtr<ID3D11Debug> debug;
+    static Microsoft::WRL::ComPtr<IDXGIFactory2> factory;
+
+
+    // TODO:: We can pull out the win32 coupling and pass this d3d11 window equpping
+    // related data to a struct w32window via a template type.
+    struct Window
+    {
+        HWND handle;
+        Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> buffer;
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView> view;
+        D3D11_VIEWPORT viewport;
+    };
+
+    static Window window;
+}
 
 static bool running;
 
-LRESULT CALLBACK MainWindowCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	LRESULT result { 0 };
-	switch (uMsg)
-	{
-		case WM_CLOSE:
-		{
-			running = false;
-			result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
-		}
-		break;
-		case WM_DESTROY:
-		{
-			running = false;
-			result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
-		}
-		break;
-		default:
-		{
-			result = result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
-		}
-		break;
-	}
-	// If you get here the message wasn't handled
-	return result;
-}
+    LRESULT result { 0 };
+    switch (uMsg)
+    {
+        case WM_CLOSE:
+        {
+            running = false;
+            result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
+        }
+        break;
+        case WM_DESTROY:
+        {
+            running = false;
+            result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
+        }
+        break;
+        default:
+        {
+            result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
+        }
+        break;
+    }
 
+    return result;
+}
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
-	// Create a win32 window class and window
-	HWND windowHandle { 0 };
-	std::wstring windowClassName { L"GameWindowClass" };
+    const std::wstring windowClassName { L"D3D11WindowClass" };
 
-	{
-		WNDCLASSW windowClass {};
-		windowClass.lpfnWndProc = MainWindowCallback;
-		windowClass.hInstance = hInstance;
-		windowClass.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
-		windowClass.hIcon = nullptr;
-		windowClass.hCursor = nullptr;
-		windowClass.lpszClassName = windowClassName.c_str();
+    std::wstring error;
 
-		if (!RegisterClassW(&windowClass))
-		{
-			MessageBoxW(nullptr, L"WIN32: Failed to register window class", L"Error", MB_ICONWARNING | MB_OK);
-			return 1;
-		}
+    {
+        // create device
+        if (error.empty())
+        {
+            constexpr D3D_FEATURE_LEVEL deviceFeatureLevel { D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0 };
+            UINT flags { D3D11_CREATE_DEVICE_DEBUG };
 
-		HWND hwnd { CreateWindowExW(
-			0,											// Optional window styles
-			windowClassName.c_str(),					// Window class
-			L"Clay & Magik",							// Window title
-			WS_OVERLAPPEDWINDOW | WS_VISIBLE,			// Window style
-			CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720,	// Position and Size x,y,w,h
-			nullptr,									// Parent window
-			nullptr,									// Menu
-			hInstance,									// Instance handle
-			nullptr										// Additional application data
-		) };
+            HRESULT deviceResult { D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0,
+                flags, &deviceFeatureLevel, 1,
+                D3D11_SDK_VERSION,
+                &D3D11::device,
+                0,
+                &D3D11::context
+            ) };
 
-		if (!hwnd)
-		{
-			MessageBoxW(nullptr, L"WIN32: Failed to create window", L"Error", MB_ICONWARNING | MB_OK);
-			return 1;
-		}
+            if (deviceResult != S_OK)
+            {
+                error = L"D3D11: Failed to create device";
+            }
+        }
 
-		windowHandle = hwnd;
-	}
+        // debug
+        if (error.empty())
+        {
+            HRESULT debugResult { D3D11::device.As(&D3D11::debug) };
 
-	// directx 11 code
-	if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&gfx.dxgiFactory))))
-	{
-		MessageBoxW(nullptr, L"DXGI: Unable to create DXGIFactory", L"Error", MB_ICONWARNING | MB_OK);
-	}
+            if (debugResult != S_OK)
+            {
+                error = L"D3D11: Failed to get debug interface";
+            }
+        }
 
-	constexpr D3D_FEATURE_LEVEL deviceFeatureLevel { D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0 };
-	if (FAILED(D3D11CreateDevice(
-		nullptr,
-		D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_HARDWARE,
-		nullptr,
-		0,
-		&deviceFeatureLevel,
-		1,
-		D3D11_SDK_VERSION,
-		&gfx.device,
-		nullptr,
-		&gfx.deviceContext)))
-	{
-		MessageBoxW(nullptr, L"D3D11: Failed to create device and device Context", L"Error", MB_ICONWARNING | MB_OK);
-	}
+        // factory
+        {
+            if (error.empty())
+            {
+                HRESULT factoryResult { CreateDXGIFactory1(IID_PPV_ARGS(&D3D11::factory)) };
 
-	// get win32 drawble area (excludes bars and border)
-	RECT clientRect {};
-	GetClientRect(windowHandle, &clientRect);
+                if (factoryResult != S_OK)
+                {
+                    error = L"D3D11: Unable to create DXGIFactory";
+                }
+            }
+        }
+    }
 
-	// Swapchain resources
-	DXGI_SWAP_CHAIN_DESC1 swapChainDescriptor {};
-	swapChainDescriptor.Width = clientRect.right - clientRect.left;
-	swapChainDescriptor.Height = clientRect.bottom - clientRect.top;
-	swapChainDescriptor.Format = DXGI_FORMAT::DXGI_FORMAT_B8G8R8A8_UNORM;
-	swapChainDescriptor.SampleDesc.Count = 1;
-	swapChainDescriptor.SampleDesc.Quality = 0;
-	swapChainDescriptor.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChainDescriptor.BufferCount = 2; // double buffered
-	swapChainDescriptor.SwapEffect = DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_FLIP_DISCARD; // if the contents of the back buffer should be preserved or discarded
-	swapChainDescriptor.Scaling = DXGI_SCALING::DXGI_SCALING_STRETCH;
-	swapChainDescriptor.Flags = {};
+    {
+        // register window class
+        WNDCLASSW windowClass {};
+        windowClass.lpfnWndProc = WindowProc;
+        windowClass.hInstance = hInstance;
+        windowClass.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
+        windowClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+        windowClass.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+        windowClass.lpszClassName = windowClassName.c_str();
 
-	DXGI_SWAP_CHAIN_FULLSCREEN_DESC swapChainFullscreenDescriptor = {};
-	swapChainFullscreenDescriptor.Windowed = true;
+        if (error.empty())
+        {
+            if (!RegisterClassW(&windowClass))
+            {
+                error = L"WIN32: Failed to create window";
+            }
+        }
 
-	if (FAILED(gfx.dxgiFactory->CreateSwapChainForHwnd(
-		gfx.device.Get(),
-		windowHandle,
-		&swapChainDescriptor,
-		&swapChainFullscreenDescriptor,
-		nullptr,
-		&gfx.swapChain)))
-	{
-		MessageBoxW(NULL, L"DXGI: Failed to create swapchain", L"Error", MB_ICONWARNING | MB_OK);
-	}
+        // create window
+        if (error.empty())
+        {
+            // Ensure client area is exactly 1280x720
+            RECT windowRect { 0, 0, 1280, 720 };
+            AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
-	// Render target view
+            D3D11::window.handle = CreateWindowEx(
+                0, windowClassName.c_str(), L"Farming Sim Prototype", WS_OVERLAPPEDWINDOW,
+                CW_USEDEFAULT, CW_USEDEFAULT, 
+                windowRect.right - windowRect.left,
+                windowRect.bottom - windowRect.top,
+                nullptr, nullptr, hInstance, nullptr
+            );
 
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
-	if (FAILED(gfx.swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer))))
-	{
-		MessageBoxW(nullptr, L"D3D11: Failed to get back buffer", L"Error", MB_ICONWARNING | MB_OK);
-	}
+            if (!D3D11::window.handle)
+            {
+                error = L"WIN32: Failed to create window";
+            }
+        }
+    }
 
-	if (FAILED(gfx.device->CreateRenderTargetView(backBuffer.Get(), nullptr, &gfx.renderTarget)))
-	{
-		MessageBoxW(nullptr, L"D3D11: Failed to create render target view", L"Error", MB_ICONWARNING | MB_OK);
-	}
+    {
+        //swap chain
+        if (error.empty())
+        {
+            // Get the drawable area (the window area excluding the title bar and border)
+            RECT clientRect {};
+            GetClientRect(D3D11::window.handle, &clientRect);
 
-	// viewport
-	D3D11_VIEWPORT viewport {};
-	viewport.TopLeftX = 0;
-	viewport.TopLeftY = 0;
-	viewport.Width = static_cast<float>(swapChainDescriptor.Width);
-	viewport.Height = static_cast<float>(swapChainDescriptor.Height);
-	viewport.MinDepth = 0.0f;
-	viewport.MaxDepth = 1.0f;
+            DXGI_SWAP_CHAIN_DESC1 swapChainDesc {};
+            swapChainDesc.Width = clientRect.right - clientRect.left;
+            swapChainDesc.Height = clientRect.bottom - clientRect.top;
+            swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            swapChainDesc.SampleDesc.Count = 1;
+            swapChainDesc.SampleDesc.Quality = 0;
+            swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+            swapChainDesc.BufferCount = 2;
+            swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+            // TODO:: change scaling to none when implementing virtual resolution
+            swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 
-	running = true;
+            DXGI_SWAP_CHAIN_FULLSCREEN_DESC swapChainFullscreenDesc {};
+            swapChainFullscreenDesc.Windowed = true;
 
-	ShowWindow(windowHandle, SW_SHOW);
-	
-	while(running)
-	{
-		MSG message;
-		while (PeekMessageW(&message, 0, 0, 0, PM_REMOVE))
-		{
-			if (message.message == WM_QUIT)
-			{
-				running = false;
-			}
-			TranslateMessage(&message);
-			DispatchMessage(&message);
-		}
+            HRESULT swapChainResult { D3D11::factory->CreateSwapChainForHwnd(
+                D3D11::device.Get(),
+                D3D11::window.handle,
+                &swapChainDesc,
+                &swapChainFullscreenDesc,
+                0,
+                &D3D11::window.swapChain
+            ) };
 
-		constexpr float clearColour[] = { 1.0f, 0.0f, 1.0f, 1.0f };
-		gfx.deviceContext->ClearRenderTargetView(gfx.renderTarget.Get(), clearColour);
-		gfx.deviceContext->RSSetViewports(1, &viewport);
-		gfx.deviceContext->OMSetRenderTargets(1, gfx.renderTarget.GetAddressOf(), nullptr);
+            if (swapChainResult != S_OK)
+            {
+                error = L"D3D11: Failed to create swap chain";
+            }
+        }
 
-		gfx.swapChain->Present(1, 0);
-	}
+        // texture buffer
+        if (error.empty())
+        {
+            HRESULT bufferResult { D3D11::window.swapChain->GetBuffer(0, IID_PPV_ARGS(&D3D11::window.buffer)) };
 
-	return 0;
+            if (bufferResult != S_OK)
+            {
+                error = L"D3D11: Failed to get buffer";
+            }
+        }
+
+        // view
+        if (error.empty())
+        {
+            HRESULT viewResult { D3D11::device->CreateRenderTargetView(D3D11::window.buffer.Get(), 0, &D3D11::window.view) };
+
+            if (viewResult != S_OK)
+            {
+                error = L"D3D11: Failed to create render target view";
+            }
+        }
+    }
+
+    // viewport
+    {
+
+        RECT clientRect {};
+        GetClientRect(D3D11::window.handle, &clientRect);
+
+        D3D11::window.viewport.Width = static_cast<float>(clientRect.right - clientRect.left);
+        D3D11::window.viewport.Height = static_cast<float>(clientRect.bottom - clientRect.top);
+        D3D11::window.viewport.MinDepth = 0.0f;
+        D3D11::window.viewport.MaxDepth = 1.0f;
+    }
+
+    if (!error.empty())
+    {
+        MessageBoxW(nullptr, error.c_str(), L"Error", MB_ICONERROR | MB_OK);
+        return 1;
+    }
+
+    ShowWindow(D3D11::window.handle, SW_SHOW);
+
+    running = true;
+
+    while (running)
+    {
+        MSG message;
+        while (PeekMessageW(&message, 0, 0, 0, PM_REMOVE))
+        {
+            if (message.message == WM_QUIT)
+            {
+                running = false;
+            }
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+        }
+
+        constexpr float clearColour[] = { 1.0f, 0.0f, 1.0f, 1.0f };
+        D3D11::context->ClearRenderTargetView(D3D11::window.view.Get(), clearColour);
+        D3D11::context->RSSetViewports(1, &D3D11::window.viewport);
+        D3D11::context->OMSetRenderTargets(1, D3D11::window.view.GetAddressOf(), 0);
+
+        D3D11::window.swapChain->Present(1, 0);
+    }
+
+    return 0;
 }
