@@ -36,6 +36,19 @@ namespace D3D11
     static Window window;
 }
 
+struct Vertex
+{
+    float position[3];
+    float colour[3];
+};
+
+constexpr Vertex vertices[] =
+{
+    {{ 0.0f,  0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}}, // top   - red
+    {{ 0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}, // right - blue
+    {{-0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}}, // left  - green
+};
+
 static bool running;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -230,6 +243,58 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         D3D11::window.viewport.MaxDepth = 1.0f;
     }
 
+    // Shader
+    Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
+    Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
+    Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
+    Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
+    {
+        Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderCSO;
+        Microsoft::WRL::ComPtr<ID3DBlob> pixelShaderCSO;
+
+        if (error.empty())
+        {
+            Microsoft::WRL::ComPtr<ID3DBlob> vsError;
+            HRESULT vsResult = D3DCompileFromFile(L"../data/shaders/basicvs.hlsl", 0, 0, "Main", "vs_5_0", 0, 0, &vertexShaderCSO, &vsError);
+
+            if (vsResult != S_OK)
+                error = L"D3D11: Failed to compile vertex shader";
+        }
+
+        if (error.empty())
+        {
+            Microsoft::WRL::ComPtr<ID3DBlob> psError;
+            HRESULT psResult = D3DCompileFromFile(L"../data/shaders/basicps.hlsl", 0, 0, "Main", "ps_5_0", 0, 0, &pixelShaderCSO, &psError);
+
+            if (psResult != S_OK)
+                error = L"D3D11: Failed to compile pixel shader";
+        }
+
+        if (error.empty())
+        {
+            D3D11::device->CreateVertexShader(vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), 0, &vertexShader);
+            D3D11::device->CreatePixelShader(pixelShaderCSO->GetBufferPointer(), pixelShaderCSO->GetBufferSize(), 0, &pixelShader);
+
+            D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
+            {
+                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,                            D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            };
+            D3D11::device->CreateInputLayout(layoutDesc, ARRAYSIZE(layoutDesc), vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), &inputLayout);
+
+            D3D11_BUFFER_DESC vertexBufferDesc {};
+            vertexBufferDesc.ByteWidth = sizeof(vertices);
+            vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+            vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+            D3D11_SUBRESOURCE_DATA vertexBufferSRD { vertices };
+            D3D11::device->CreateBuffer(&vertexBufferDesc, &vertexBufferSRD, &vertexBuffer);
+        }
+    }
+
+
+
+
     if (!error.empty())
     {
         MessageBoxW(nullptr, error.c_str(), L"Error", MB_ICONERROR | MB_OK);
@@ -239,6 +304,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     ShowWindow(D3D11::window.handle, SW_SHOW);
 
     running = true;
+
+    constexpr float clearColour[] = { 1.0f, 0.0f, 1.0f, 1.0f };
+
+    UINT stride { sizeof(Vertex) };
+    UINT offset { 0 };
 
     while (running)
     {
@@ -253,11 +323,20 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             DispatchMessage(&message);
         }
 
-        constexpr float clearColour[] = { 1.0f, 0.0f, 1.0f, 1.0f };
         D3D11::context->ClearRenderTargetView(D3D11::window.view.Get(), clearColour);
-        D3D11::context->RSSetViewports(1, &D3D11::window.viewport);
-        D3D11::context->OMSetRenderTargets(1, D3D11::window.view.GetAddressOf(), 0);
 
+        D3D11::context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        D3D11::context->IASetInputLayout(inputLayout.Get());
+        D3D11::context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+
+        D3D11::context->VSSetShader(vertexShader.Get(), nullptr, 0);
+
+        D3D11::context->RSSetViewports(1, &D3D11::window.viewport);
+
+        D3D11::context->PSSetShader(pixelShader.Get(), nullptr, 0);
+
+        D3D11::context->OMSetRenderTargets(1, D3D11::window.view.GetAddressOf(), 0);
+        D3D11::context->Draw(ARRAYSIZE(vertices), 0);
         D3D11::window.swapChain->Present(1, 0);
     }
 
