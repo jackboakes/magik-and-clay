@@ -6,43 +6,7 @@
 #include <dxgi1_3.h>
 #include <wrl.h>
 #include <d3dcompiler.h>
-#include <DirectXMath.h>
 #include <string>
-
-// TODO:: W32_D3d11 globals maybe make the globals a struct like the window?
-namespace D3D11
-{
-    //static HMODULE dxgiModule;
-    //static HMODULE d3d11Module;
-    //static HMODULE d3compilerModule;
-
-    static Microsoft::WRL::ComPtr<ID3D11Device> device;
-    static Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
-    static Microsoft::WRL::ComPtr<ID3D11Debug> debug;
-    static Microsoft::WRL::ComPtr<IDXGIFactory2> factory;
-
-
-    // TODO:: We can pull out the win32 coupling and pass this d3d11 window equpping
-    // related data to a struct w32window via a template type.
-    struct Window
-    {
-        HWND handle;
-        Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
-        Microsoft::WRL::ComPtr<ID3D11Texture2D> buffer;
-        Microsoft::WRL::ComPtr<ID3D11RenderTargetView> view;
-        D3D11_VIEWPORT viewport;
-    };
-
-    static Window window;
-
-
-    // Renderer
-    Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
-    Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
-    Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
-    Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
-}
 
 struct Vertex
 {
@@ -61,48 +25,52 @@ constexpr Vertex vertices[] =
 
 };
 
-constexpr uint16_t indices[] = 
-{ 
+constexpr uint16_t indices[] =
+{
     0, 1, 2, // t1
     0, 3, 1 // t2
 };
 
-static bool running;
-
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+// TODO:: W32_D3D11 globals maybe make the globals a struct like the window?
+namespace D3D11
 {
-    LRESULT result { 0 };
-    switch (uMsg)
+    //static HMODULE dxgiModule;
+    //static HMODULE d3d11Module;
+    //static HMODULE d3compilerModule;
+
+    static Microsoft::WRL::ComPtr<ID3D11Device> device;
+    static Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
+    static Microsoft::WRL::ComPtr<ID3D11Debug> debug;
+    static Microsoft::WRL::ComPtr<IDXGIFactory2> factory;
+
+
+    // TODO:: We can pull out the win32 coupling and pass this d3d11 window equpping
+    // related data to a struct w32window via a template type.
+    struct Window
     {
-        case WM_CLOSE:
-        {
-            running = false;
-            result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
-        }
-        break;
-        case WM_DESTROY:
-        {
-            running = false;
-            result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
-        }
-        break;
-        default:
-        {
-            result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
-        }
-        break;
-    }
+        HWND handle;
+        Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView> view;
 
-    return result;
-}
+        // TODO:: Change this into a Vec2 lastResolution variable
+        UINT lastWidth;
+        UINT lastHeight;
+    };
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
-{
-    const std::wstring windowClassName { L"D3D11WindowClass" };
+    static Window window;
 
-    std::wstring error;
 
+    // Renderer
+    Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
+    Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
+    Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
+    Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
+
+    static void Init()
     {
+        std::wstring error;
+
         // create device
         if (error.empty())
         {
@@ -135,66 +103,95 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         }
 
         // factory
+        if (error.empty())
         {
+            HRESULT factoryResult { CreateDXGIFactory1(IID_PPV_ARGS(&D3D11::factory)) };
+
+            if (factoryResult != S_OK)
+            {
+                error = L"D3D11: Unable to create DXGIFactory";
+            }
+        }
+
+        if (!error.empty())
+        {
+            MessageBoxW(nullptr, error.c_str(), L"Error", MB_ICONERROR | MB_OK);
+            ExitProcess(1);
+        }
+
+        // Shader
+        {
+            Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderCSO;
+            Microsoft::WRL::ComPtr<ID3DBlob> pixelShaderCSO;
+
             if (error.empty())
             {
-                HRESULT factoryResult { CreateDXGIFactory1(IID_PPV_ARGS(&D3D11::factory)) };
+                Microsoft::WRL::ComPtr<ID3DBlob> vsError;
+                HRESULT vsResult { D3DCompileFromFile(L"../data/shaders/basicvs.hlsl", 0, 0, "VSMain", "vs_5_0", 0, 0, &vertexShaderCSO, &vsError) };
 
-                if (factoryResult != S_OK)
+                if (vsResult != S_OK)
+                    error = L"D3D11: Failed to compile vertex shader";
+            }
+
+            if (error.empty())
+            {
+                Microsoft::WRL::ComPtr<ID3DBlob> psError;
+                HRESULT psResult { D3DCompileFromFile(L"../data/shaders/basicps.hlsl", 0, 0, "PSMain", "ps_5_0", 0, 0, &pixelShaderCSO, &psError) };
+
+                if (psResult != S_OK)
+                    error = L"D3D11: Failed to compile pixel shader";
+            }
+
+            if (error.empty())
+            {
+                D3D11::device->CreateVertexShader(vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), 0, &D3D11::vertexShader);
+                D3D11::device->CreatePixelShader(pixelShaderCSO->GetBufferPointer(), pixelShaderCSO->GetBufferSize(), 0, &D3D11::pixelShader);
+
+                D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
                 {
-                    error = L"D3D11: Unable to create DXGIFactory";
-                }
+                    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,                            D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                    { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                };
+                D3D11::device->CreateInputLayout(layoutDesc, ARRAYSIZE(layoutDesc), vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), &D3D11::inputLayout);
+
+                D3D11_BUFFER_DESC vertexBufferDesc {};
+                vertexBufferDesc.ByteWidth = sizeof(vertices);
+                vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+                vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+                D3D11_SUBRESOURCE_DATA vertexBufferSRD { vertices };
+                D3D11::device->CreateBuffer(&vertexBufferDesc, &vertexBufferSRD, &D3D11::vertexBuffer);
             }
+
+            // index buffer
+            if (error.empty())
+            {
+                D3D11_BUFFER_DESC indexBufferDesc {};
+                indexBufferDesc.ByteWidth = sizeof(indices);
+                indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+                indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
+                D3D11_SUBRESOURCE_DATA indexBufferSRD { indices };
+                D3D11::device->CreateBuffer(&indexBufferDesc, &indexBufferSRD, &D3D11::indexBuffer);
+            }
+        }
+
+        if (!error.empty())
+        {
+            MessageBoxW(nullptr, error.c_str(), L"Error", MB_ICONERROR | MB_OK);
+            ExitProcess(1);
         }
     }
 
+    static void WindowEquip(HWND handle)
     {
-        // register window class
-        WNDCLASSW windowClass {};
-        windowClass.lpfnWndProc = WindowProc;
-        windowClass.hInstance = hInstance;
-        windowClass.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
-        windowClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-        windowClass.hCursor = LoadCursorW(nullptr, IDC_ARROW);
-        windowClass.lpszClassName = windowClassName.c_str();
+        std::wstring error;
 
-        if (error.empty())
-        {
-            if (!RegisterClassW(&windowClass))
-            {
-                error = L"WIN32: Failed to create window";
-            }
-        }
-
-        // create window
-        if (error.empty())
-        {
-            // Ensure client area is exactly 1280x720
-            RECT windowRect { 0, 0, 1280, 720 };
-            AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
-
-            D3D11::window.handle = CreateWindowEx(
-                0, windowClassName.c_str(), L"Farming Sim Prototype", WS_OVERLAPPEDWINDOW,
-                CW_USEDEFAULT, CW_USEDEFAULT, 
-                windowRect.right - windowRect.left,
-                windowRect.bottom - windowRect.top,
-                nullptr, nullptr, hInstance, nullptr
-            );
-
-            if (!D3D11::window.handle)
-            {
-                error = L"WIN32: Failed to create window";
-            }
-        }
-    }
-
-    {
         //swap chain
-        if (error.empty())
         {
             // Get the drawable area (the window area excluding the title bar and border)
             RECT clientRect {};
-            GetClientRect(D3D11::window.handle, &clientRect);
+            GetClientRect(handle, &clientRect);
 
             DXGI_SWAP_CHAIN_DESC1 swapChainDesc {};
             swapChainDesc.Width = clientRect.right - clientRect.left;
@@ -213,7 +210,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
             HRESULT swapChainResult { D3D11::factory->CreateSwapChainForHwnd(
                 D3D11::device.Get(),
-                D3D11::window.handle,
+                handle,
                 &swapChainDesc,
                 &swapChainFullscreenDesc,
                 0,
@@ -226,113 +223,142 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             }
         }
 
-        // texture buffer
-        if (error.empty())
+        if (!error.empty())
         {
-            HRESULT bufferResult { D3D11::window.swapChain->GetBuffer(0, IID_PPV_ARGS(&D3D11::window.buffer)) };
-
-            if (bufferResult != S_OK)
-            {
-                error = L"D3D11: Failed to get buffer";
-            }
-        }
-
-        // view
-        if (error.empty())
-        {
-            HRESULT viewResult { D3D11::device->CreateRenderTargetView(D3D11::window.buffer.Get(), 0, &D3D11::window.view) };
-
-            if (viewResult != S_OK)
-            {
-                error = L"D3D11: Failed to create render target view";
-            }
+            MessageBoxW(nullptr, error.c_str(), L"Error", MB_ICONERROR | MB_OK);
+            ExitProcess(1);
         }
     }
 
-    // viewport
+    static void BeginFrame()
     {
-
         RECT clientRect {};
         GetClientRect(D3D11::window.handle, &clientRect);
+        UINT width = clientRect.right - clientRect.left;
+        UINT height = clientRect.bottom - clientRect.top;
 
-        D3D11::window.viewport.Width = static_cast<float>(clientRect.right - clientRect.left);
-        D3D11::window.viewport.Height = static_cast<float>(clientRect.bottom - clientRect.top);
-        D3D11::window.viewport.MinDepth = 0.0f;
-        D3D11::window.viewport.MaxDepth = 1.0f;
+        bool resolutionChanged { (D3D11::window.lastWidth != width ||
+            D3D11::window.lastHeight != height) };
+
+        D3D11::window.lastWidth = width;
+        D3D11::window.lastHeight = height;
+
+        if (resolutionChanged)
+        {
+            D3D11::context->OMSetRenderTargets(0, 0, 0);
+            D3D11::window.view.Reset();
+
+            D3D11::window.swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+
+            ID3D11Texture2D* framebuffer = 0;
+            D3D11::window.swapChain->GetBuffer(0, IID_PPV_ARGS(&framebuffer));
+            D3D11::device->CreateRenderTargetView(framebuffer, 0, &D3D11::window.view);
+            framebuffer->Release();
+        }
+
+        constexpr float clearColour[] = { 1.0f, 0.0f, 1.0f, 1.0f };
+        D3D11::context->ClearRenderTargetView(D3D11::window.view.Get(), clearColour);
+
+        // Update viewport
+        {
+            UINT width = D3D11::window.lastWidth;
+            UINT height = D3D11::window.lastHeight;
+            D3D11_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+
+            D3D11::context->RSSetViewports(1, &viewport);
+            D3D11::context->OMSetRenderTargets(1, D3D11::window.view.GetAddressOf(), nullptr);
+        }
     }
 
-    // Shader
-
+    static void EndFrame()
     {
-        Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderCSO;
-        Microsoft::WRL::ComPtr<ID3DBlob> pixelShaderCSO;
-
-        if (error.empty())
-        {
-            Microsoft::WRL::ComPtr<ID3DBlob> vsError;
-            HRESULT vsResult { D3DCompileFromFile(L"../data/shaders/basicvs.hlsl", 0, 0, "VSMain", "vs_5_0", 0, 0, &vertexShaderCSO, &vsError) };
-
-            if (vsResult != S_OK)
-                error = L"D3D11: Failed to compile vertex shader";
-        }
-
-        if (error.empty())
-        {
-            Microsoft::WRL::ComPtr<ID3DBlob> psError;
-            HRESULT psResult { D3DCompileFromFile(L"../data/shaders/basicps.hlsl", 0, 0, "PSMain", "ps_5_0", 0, 0, &pixelShaderCSO, &psError) };
-
-            if (psResult != S_OK)
-                error = L"D3D11: Failed to compile pixel shader";
-        }
-
-        if (error.empty())
-        {
-            D3D11::device->CreateVertexShader(vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), 0, &D3D11::vertexShader);
-            D3D11::device->CreatePixelShader(pixelShaderCSO->GetBufferPointer(), pixelShaderCSO->GetBufferSize(), 0, &D3D11::pixelShader);
-
-            D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
-            {
-                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,                            D3D11_INPUT_PER_VERTEX_DATA, 0 },
-                { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            };
-            D3D11::device->CreateInputLayout(layoutDesc, ARRAYSIZE(layoutDesc), vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), &D3D11::inputLayout);
-
-            D3D11_BUFFER_DESC vertexBufferDesc {};
-            vertexBufferDesc.ByteWidth = sizeof(vertices);
-            vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-            vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-            D3D11_SUBRESOURCE_DATA vertexBufferSRD { vertices };
-            D3D11::device->CreateBuffer(&vertexBufferDesc, &vertexBufferSRD, &D3D11::vertexBuffer);
-        }
-
-        // index buffer
-        if (error.empty())
-        {
-            D3D11_BUFFER_DESC indexBufferDesc {};
-            indexBufferDesc.ByteWidth = sizeof(indices);
-            indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-            indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-            D3D11_SUBRESOURCE_DATA indexBufferSRD { indices };
-            D3D11::device->CreateBuffer(&indexBufferDesc, &indexBufferSRD, &D3D11::indexBuffer);
-        }
+        D3D11::window.swapChain->Present(1, 0);
     }
+}
 
-    if (!error.empty())
+static bool running;
+
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    LRESULT result { 0 };
+    switch (uMsg)
     {
-        MessageBoxW(nullptr, error.c_str(), L"Error", MB_ICONERROR | MB_OK);
-        return 1;
+        case WM_CLOSE:
+        {
+            running = false;
+            result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
+        }
+        break;
+        case WM_DESTROY:
+        {
+            running = false;
+            result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
+        }
+        break;
+        default:
+        {
+            result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
+        }
+        break;
     }
+
+    return result;
+}
+
+namespace W32
+{
+    // TODO:: Pass in a rect type?
+    static HWND WindowCreate(int width, int height, std::wstring_view title)
+    {
+        HINSTANCE hInstance = GetModuleHandleW(0);
+
+        // register window class
+        {
+            WNDCLASSW windowClass {};
+            windowClass.lpfnWndProc = WindowProc;
+            windowClass.hInstance = hInstance;
+            windowClass.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
+            windowClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+            windowClass.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+            windowClass.lpszClassName = L"graphicalWindow";
+            RegisterClassW(&windowClass);
+        }
+
+        // create window
+        HWND handle = 0;
+        {
+            // Ensure client area is exactly width x height
+            RECT windowRect { 0, 0, width, height };
+            AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
+
+            handle = CreateWindowEx(
+                0, L"graphicalWindow", title.data(), WS_OVERLAPPEDWINDOW,
+                CW_USEDEFAULT, CW_USEDEFAULT,
+                windowRect.right - windowRect.left,
+                windowRect.bottom - windowRect.top,
+                nullptr, nullptr, hInstance, nullptr
+            );
+        }
+
+        return handle;
+    }
+}
+
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
+{
+    D3D11::window.handle = W32::WindowCreate(1280, 720, L"Farming Sim Prototype");
+    if (!D3D11::window.handle)
+    {
+        MessageBoxW(nullptr, L"WIN32: Failed to create window", L"Error", MB_ICONERROR | MB_OK);
+        ExitProcess(1);
+    }
+
+    D3D11::Init();
+    D3D11::WindowEquip(D3D11::window.handle);
 
     ShowWindow(D3D11::window.handle, SW_SHOW);
 
     running = true;
-
-    constexpr float clearColour[] = { 1.0f, 0.0f, 1.0f, 1.0f };
-
-    UINT stride { sizeof(Vertex) };
-    UINT offset { 0 };
 
     while (running)
     {
@@ -347,22 +373,25 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             DispatchMessage(&message);
         }
 
-        D3D11::context->ClearRenderTargetView(D3D11::window.view.Get(), clearColour);
 
-        D3D11::context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        D3D11::context->IASetInputLayout(D3D11::inputLayout.Get());
-        D3D11::context->IASetVertexBuffers(0, 1, D3D11::vertexBuffer.GetAddressOf(), &stride, &offset);
-        D3D11::context->IASetIndexBuffer(D3D11::indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+        D3D11::BeginFrame();
+        {
+            // setup input assembly
+            UINT stride { sizeof(Vertex) };
+            UINT offset { 0 };
+            D3D11::context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            D3D11::context->IASetInputLayout(D3D11::inputLayout.Get());
+            D3D11::context->IASetVertexBuffers(0, 1, D3D11::vertexBuffer.GetAddressOf(), &stride, &offset);
+            D3D11::context->IASetIndexBuffer(D3D11::indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 
-        D3D11::context->VSSetShader(D3D11::vertexShader.Get(), nullptr, 0);
+            // setup shaders
+            D3D11::context->VSSetShader(D3D11::vertexShader.Get(), nullptr, 0);
+            D3D11::context->PSSetShader(D3D11::pixelShader.Get(), nullptr, 0);
 
-        D3D11::context->RSSetViewports(1, &D3D11::window.viewport);
-
-        D3D11::context->PSSetShader(D3D11::pixelShader.Get(), nullptr, 0);
-
-        D3D11::context->OMSetRenderTargets(1, D3D11::window.view.GetAddressOf(), 0);
-        D3D11::context->DrawIndexed(ARRAYSIZE(indices), 0, 0);
-        D3D11::window.swapChain->Present(1, 0);
+            // draw
+            D3D11::context->DrawIndexed(ARRAYSIZE(indices), 0, 0);
+        }
+        D3D11::EndFrame();
     }
 
     return 0;
