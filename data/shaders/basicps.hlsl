@@ -9,7 +9,7 @@ struct PSOutput
     float4 colour : SV_Target0;
 };
 
-PSOutput Main(PSInput input)
+PSOutput PSMain(PSInput input)
 {
     PSOutput output = (PSOutput)0;
     output.colour = float4(input.colour, 1.0);

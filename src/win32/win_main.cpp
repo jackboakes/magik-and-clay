@@ -34,6 +34,14 @@ namespace D3D11
     };
 
     static Window window;
+
+
+    // Renderer
+    Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
+    Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
+    Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
+    Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
 }
 
 struct Vertex
@@ -44,9 +52,19 @@ struct Vertex
 
 constexpr Vertex vertices[] =
 {
-    {{ 0.0f,  0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}}, // top   - red
+    // t1
+    {{ -0.5f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}}, // top left - red
     {{ 0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}, // right - blue
     {{-0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}}, // left  - green
+    // t2
+    {{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 1.0f}} // top right - cyan
+
+};
+
+constexpr uint16_t indices[] = 
+{ 
+    0, 1, 2, // t1
+    0, 3, 1 // t2
 };
 
 static bool running;
@@ -244,10 +262,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     }
 
     // Shader
-    Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
-    Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
-    Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
-    Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
+
     {
         Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderCSO;
         Microsoft::WRL::ComPtr<ID3DBlob> pixelShaderCSO;
@@ -255,7 +270,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         if (error.empty())
         {
             Microsoft::WRL::ComPtr<ID3DBlob> vsError;
-            HRESULT vsResult = D3DCompileFromFile(L"../data/shaders/basicvs.hlsl", 0, 0, "Main", "vs_5_0", 0, 0, &vertexShaderCSO, &vsError);
+            HRESULT vsResult { D3DCompileFromFile(L"../data/shaders/basicvs.hlsl", 0, 0, "VSMain", "vs_5_0", 0, 0, &vertexShaderCSO, &vsError) };
 
             if (vsResult != S_OK)
                 error = L"D3D11: Failed to compile vertex shader";
@@ -264,7 +279,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         if (error.empty())
         {
             Microsoft::WRL::ComPtr<ID3DBlob> psError;
-            HRESULT psResult = D3DCompileFromFile(L"../data/shaders/basicps.hlsl", 0, 0, "Main", "ps_5_0", 0, 0, &pixelShaderCSO, &psError);
+            HRESULT psResult { D3DCompileFromFile(L"../data/shaders/basicps.hlsl", 0, 0, "PSMain", "ps_5_0", 0, 0, &pixelShaderCSO, &psError) };
 
             if (psResult != S_OK)
                 error = L"D3D11: Failed to compile pixel shader";
@@ -272,15 +287,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
         if (error.empty())
         {
-            D3D11::device->CreateVertexShader(vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), 0, &vertexShader);
-            D3D11::device->CreatePixelShader(pixelShaderCSO->GetBufferPointer(), pixelShaderCSO->GetBufferSize(), 0, &pixelShader);
+            D3D11::device->CreateVertexShader(vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), 0, &D3D11::vertexShader);
+            D3D11::device->CreatePixelShader(pixelShaderCSO->GetBufferPointer(), pixelShaderCSO->GetBufferSize(), 0, &D3D11::pixelShader);
 
             D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
             {
                 { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,                            D3D11_INPUT_PER_VERTEX_DATA, 0 },
                 { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
             };
-            D3D11::device->CreateInputLayout(layoutDesc, ARRAYSIZE(layoutDesc), vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), &inputLayout);
+            D3D11::device->CreateInputLayout(layoutDesc, ARRAYSIZE(layoutDesc), vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), &D3D11::inputLayout);
 
             D3D11_BUFFER_DESC vertexBufferDesc {};
             vertexBufferDesc.ByteWidth = sizeof(vertices);
@@ -288,12 +303,21 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
             D3D11_SUBRESOURCE_DATA vertexBufferSRD { vertices };
-            D3D11::device->CreateBuffer(&vertexBufferDesc, &vertexBufferSRD, &vertexBuffer);
+            D3D11::device->CreateBuffer(&vertexBufferDesc, &vertexBufferSRD, &D3D11::vertexBuffer);
+        }
+
+        // index buffer
+        if (error.empty())
+        {
+            D3D11_BUFFER_DESC indexBufferDesc {};
+            indexBufferDesc.ByteWidth = sizeof(indices);
+            indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+            indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
+            D3D11_SUBRESOURCE_DATA indexBufferSRD { indices };
+            D3D11::device->CreateBuffer(&indexBufferDesc, &indexBufferSRD, &D3D11::indexBuffer);
         }
     }
-
-
-
 
     if (!error.empty())
     {
@@ -326,17 +350,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         D3D11::context->ClearRenderTargetView(D3D11::window.view.Get(), clearColour);
 
         D3D11::context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        D3D11::context->IASetInputLayout(inputLayout.Get());
-        D3D11::context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+        D3D11::context->IASetInputLayout(D3D11::inputLayout.Get());
+        D3D11::context->IASetVertexBuffers(0, 1, D3D11::vertexBuffer.GetAddressOf(), &stride, &offset);
+        D3D11::context->IASetIndexBuffer(D3D11::indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 
-        D3D11::context->VSSetShader(vertexShader.Get(), nullptr, 0);
+        D3D11::context->VSSetShader(D3D11::vertexShader.Get(), nullptr, 0);
 
         D3D11::context->RSSetViewports(1, &D3D11::window.viewport);
 
-        D3D11::context->PSSetShader(pixelShader.Get(), nullptr, 0);
+        D3D11::context->PSSetShader(D3D11::pixelShader.Get(), nullptr, 0);
 
         D3D11::context->OMSetRenderTargets(1, D3D11::window.view.GetAddressOf(), 0);
-        D3D11::context->Draw(ARRAYSIZE(vertices), 0);
+        D3D11::context->DrawIndexed(ARRAYSIZE(indices), 0, 0);
         D3D11::window.swapChain->Present(1, 0);
     }
 

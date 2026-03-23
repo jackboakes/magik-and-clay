@@ -10,7 +10,7 @@ struct VSOutput
     float3 colour : COLOR;
 };
 
-VSOutput Main(VSInput input)
+VSOutput VSMain(VSInput input)
 {
     VSOutput output = (VSOutput)0;
     output.position = float4(input.position, 1.0);
