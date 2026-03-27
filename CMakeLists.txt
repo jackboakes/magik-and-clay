@@ -12,9 +12,21 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(WIN32)
 
-	add_executable(${PROJECT_NAME} WIN32 src/win32/win_main.cpp)
+	add_executable(${PROJECT_NAME} WIN32 
+	src/win32/win_main.cpp
+	third_party/HandmadeMath/HandmadeMath.h
+	third_party/stb/stb_image.h)
+	
+	source_group("third_party" FILES
+    third_party/HandmadeMath/HandmadeMath.h
+    third_party/stb/stb_image.h
+	)
 
-	target_include_directories(${PROJECT_NAME} PRIVATE include/ third_party/stb)
+	target_include_directories(${PROJECT_NAME} PRIVATE include/ 
+	third_party/stb
+	third_party/HandmadeMath
+	)
+
 	target_link_libraries(${PROJECT_NAME} PRIVATE
         d3d11.lib
         dxgi.lib

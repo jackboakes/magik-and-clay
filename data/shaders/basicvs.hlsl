@@ -1,19 +1,23 @@
+cbuffer Constants : register(b0)
+{
+    column_major float4x4 model;
+    column_major float4x4 viewProjection;
+};
+
 struct VSInput
 {
     float3 position: POSITION;
-    float3 colour: COLOR;
 };
 
 struct VSOutput
 {
     float4 position: SV_Position;
-    float3 colour : COLOR;
 };
 
 VSOutput VSMain(VSInput input)
 {
     VSOutput output = (VSOutput)0;
-    output.position = float4(input.position, 1.0);
-    output.colour = input.colour;
+    float4 position = float4(input.position, 1.0f);
+    output.position = mul(viewProjection, mul(model, position));
     return output;
 }

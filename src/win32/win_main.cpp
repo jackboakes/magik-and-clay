@@ -8,27 +8,39 @@
 #include <d3dcompiler.h>
 #include <string>
 
+#define HANDMADE_MATH_IMPLEMENTATION
+#include "HandmadeMath.h"
+
+#define NEAR_PLANE -1.0f
+#define FAR_PLANE 1.0f
+
+struct Constants
+{
+    HMM_Mat4 model;
+    HMM_Mat4 viewProjection;
+};
+
 struct Vertex
 {
     float position[3];
-    float colour[3];
 };
 
 constexpr Vertex vertices[] =
 {
     // t1
-    {{ -0.5f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}}, // top left - red
-    {{ 0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}, // right - blue
-    {{-0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}}, // left  - green
+    {{-0.5f, -0.5f, 0.0f}, }, // left  - green
+    {{ -0.5f, 0.5f, 0.0f}, }, // top left - red
+    {{0.5f, 0.5f, 0.0f}, }, // top right - yellow 
+    
     // t2
-    {{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 1.0f}} // top right - cyan
+    {{ 0.5f, -0.5f, 0.0f }, }, // right - blue
 
 };
 
 constexpr uint16_t indices[] =
 {
     0, 1, 2, // t1
-    0, 3, 1 // t2
+    0, 2, 3 // t2
 };
 
 // TODO:: W32_D3D11 globals maybe make the globals a struct like the window?
@@ -51,6 +63,8 @@ namespace D3D11
         HWND handle;
         Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView> view;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> depthBuffer;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView;
 
         // TODO:: Change this into a Vec2 lastResolution variable
         UINT lastWidth;
@@ -66,6 +80,7 @@ namespace D3D11
     Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
     Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
 
     static void Init()
     {
@@ -74,20 +89,30 @@ namespace D3D11
         // create device
         if (error.empty())
         {
-            constexpr D3D_FEATURE_LEVEL deviceFeatureLevel { D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0 };
-            UINT flags { D3D11_CREATE_DEVICE_DEBUG };
+            D3D_FEATURE_LEVEL deviceFeatureLevel;
+            UINT flags = 0;
+#if defined(DEBUG) || defined(_DEBUG)
+             flags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
 
             HRESULT deviceResult { D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0,
-                flags, &deviceFeatureLevel, 1,
+                flags, 0, 0,
                 D3D11_SDK_VERSION,
                 &D3D11::device,
-                0,
+                &deviceFeatureLevel,
                 &D3D11::context
             ) };
 
             if (deviceResult != S_OK)
             {
                 error = L"D3D11: Failed to create device";
+            }
+
+            // TODO:: Not sure how to handle this situation or collect this error
+            if (deviceFeatureLevel != D3D_FEATURE_LEVEL_11_0)
+            {
+                error = L"D3D11: Direct3D Feature Level 11 unsupported";
             }
         }
 
@@ -139,7 +164,9 @@ namespace D3D11
                 HRESULT psResult { D3DCompileFromFile(L"../data/shaders/basicps.hlsl", 0, 0, "PSMain", "ps_5_0", 0, 0, &pixelShaderCSO, &psError) };
 
                 if (psResult != S_OK)
+                {
                     error = L"D3D11: Failed to compile pixel shader";
+                }
             }
 
             if (error.empty())
@@ -149,8 +176,7 @@ namespace D3D11
 
                 D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
                 {
-                    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,                            D3D11_INPUT_PER_VERTEX_DATA, 0 },
-                    { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,                            D3D11_INPUT_PER_VERTEX_DATA, 0 }
                 };
                 D3D11::device->CreateInputLayout(layoutDesc, ARRAYSIZE(layoutDesc), vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), &D3D11::inputLayout);
 
@@ -174,6 +200,15 @@ namespace D3D11
                 D3D11_SUBRESOURCE_DATA indexBufferSRD { indices };
                 D3D11::device->CreateBuffer(&indexBufferDesc, &indexBufferSRD, &D3D11::indexBuffer);
             }
+        }
+        // Constant buffer
+        {
+            D3D11_BUFFER_DESC constantBufferDesc {};
+            constantBufferDesc.ByteWidth = sizeof(Constants);
+            constantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+            constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+            constantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+            D3D11::device->CreateBuffer(&constantBufferDesc, nullptr, &D3D11::constantBuffer);
         }
 
         if (!error.empty())
@@ -232,6 +267,17 @@ namespace D3D11
 
     static void BeginFrame()
     {
+        Constants mvp;
+        mvp.model = HMM_MulM4(
+            HMM_Translate(HMM_V3(0.0f, 300.0f, 0.0f)),
+            HMM_Scale(HMM_V3(100.0f, 100.0f, 1.0f))
+        );
+
+        HMM_Mat4 view { HMM_M4D(1.0f) };
+        HMM_Mat4 projection { HMM_Orthographic_RH_ZO(-640.0f, 640.0f, -360.0f, 360.0f, NEAR_PLANE, FAR_PLANE) };
+        HMM_Mat4 viewProjection { HMM_MulM4(projection, view) };
+        mvp.viewProjection = viewProjection;
+        
         RECT clientRect {};
         GetClientRect(D3D11::window.handle, &clientRect);
         UINT width = clientRect.right - clientRect.left;
@@ -243,17 +289,51 @@ namespace D3D11
         D3D11::window.lastWidth = width;
         D3D11::window.lastHeight = height;
 
-        if (resolutionChanged)
+        // resize swapchain and framebuffer
+        if(resolutionChanged)
         {
             D3D11::context->OMSetRenderTargets(0, 0, 0);
             D3D11::window.view.Reset();
-
             D3D11::window.swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 
             ID3D11Texture2D* framebuffer = 0;
             D3D11::window.swapChain->GetBuffer(0, IID_PPV_ARGS(&framebuffer));
             D3D11::device->CreateRenderTargetView(framebuffer, 0, &D3D11::window.view);
             framebuffer->Release();
+        }
+
+        if (resolutionChanged)
+        {
+            // reset old resources
+            D3D11::window.depthBuffer.Reset();
+            D3D11::window.depthView.Reset();
+
+
+            // create depth buffer target
+            {
+                D3D11_TEXTURE2D_DESC depthDesc {};
+                depthDesc.Width = width;
+                depthDesc.Height = height;
+                depthDesc.MipLevels = 1;
+                depthDesc.ArraySize = 1;
+                depthDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+                depthDesc.SampleDesc.Count = 1;
+                depthDesc.SampleDesc.Quality = 0;
+                depthDesc.Usage = D3D11_USAGE_DEFAULT;
+                depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+                depthDesc.CPUAccessFlags = 0;
+                depthDesc.MiscFlags = 0;
+
+                D3D11::device->CreateTexture2D(&depthDesc, nullptr, &D3D11::window.depthBuffer);
+                D3D11::device->CreateDepthStencilView(D3D11::window.depthBuffer.Get(), nullptr, &D3D11::window.depthView);
+            }
+        }
+
+        {
+            D3D11_MAPPED_SUBRESOURCE constantBufferMSR;
+            context->Map(constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &constantBufferMSR);
+            memcpy(constantBufferMSR.pData, &mvp, sizeof(Constants));
+            D3D11::context->Unmap(D3D11::constantBuffer.Get(), 0);
         }
 
         constexpr float clearColour[] = { 1.0f, 0.0f, 1.0f, 1.0f };
@@ -265,8 +345,11 @@ namespace D3D11
             UINT height = D3D11::window.lastHeight;
             D3D11_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
 
+            D3D11::context->OMSetRenderTargets(1, D3D11::window.view.GetAddressOf(),
+                D3D11::window.depthView.Get());
             D3D11::context->RSSetViewports(1, &viewport);
-            D3D11::context->OMSetRenderTargets(1, D3D11::window.view.GetAddressOf(), nullptr);
+            D3D11::context->ClearDepthStencilView(D3D11::window.depthView.Get(),
+                D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
         }
     }
 
@@ -342,6 +425,8 @@ namespace W32
 
         return handle;
     }
+
+    // TODO:: add microsecond timer with QueryPerformanceFrequency and QueryPerformanceCounter
 }
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
@@ -386,6 +471,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
             // setup shaders
             D3D11::context->VSSetShader(D3D11::vertexShader.Get(), nullptr, 0);
+            D3D11::context->VSSetConstantBuffers(0, 1, D3D11::constantBuffer.GetAddressOf());
+
             D3D11::context->PSSetShader(D3D11::pixelShader.Get(), nullptr, 0);
 
             // draw
