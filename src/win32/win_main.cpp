@@ -11,6 +11,9 @@
 #define HANDMADE_MATH_IMPLEMENTATION
 #include "HandmadeMath.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #define NEAR_PLANE -1.0f
 #define FAR_PLANE 1.0f
 
@@ -23,18 +26,18 @@ struct Constants
 struct Vertex
 {
     float position[3];
+    float uv[2];
 };
 
+// Pivot point is top left like raylib'
+// TODO:: at the moment I'm thinking that there should be two quad functions or a way to change the pivot
+// tiles i'd prefer to be at top left pivot but certain objects i'd prefer the pivot to be in the centre.
 constexpr Vertex vertices[] =
 {
-    // t1
-    {{-0.5f, -0.5f, 0.0f}, }, // left  - green
-    {{ -0.5f, 0.5f, 0.0f}, }, // top left - red
-    {{0.5f, 0.5f, 0.0f}, }, // top right - yellow 
-    
-    // t2
-    {{ 0.5f, -0.5f, 0.0f }, }, // right - blue
-
+    {0.0f, 0.0f, 0.0f,  0.0f, 0.0f},  // top left
+    {1.0f, 0.0f, 0.0f,  1.0f, 0.0f},  // top right
+    {1.0f, 1.0f, 0.0f,  1.0f, 1.0f},  // bottom right
+    {0.0f, 1.0f, 0.0f,  0.0f, 1.0f},  // bottom left
 };
 
 constexpr uint16_t indices[] =
@@ -81,6 +84,9 @@ namespace D3D11
     Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> textureSRV;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState> pointSampler;
+    Microsoft::WRL::ComPtr<ID3D11BlendState> blendState;
 
     static void Init()
     {
@@ -144,6 +150,20 @@ namespace D3D11
             ExitProcess(1);
         }
 
+        // blend state
+        {
+            D3D11_BLEND_DESC blendDesc {};
+            blendDesc.RenderTarget[0].BlendEnable = true;
+            blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+            blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+            blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+            blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+            blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+            blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+            blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+            D3D11::device->CreateBlendState(&blendDesc, &blendState);
+        }
+
         // Shader
         {
             Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderCSO;
@@ -176,7 +196,8 @@ namespace D3D11
 
                 D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
                 {
-                    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,                            D3D11_INPUT_PER_VERTEX_DATA, 0 }
+                    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,                            D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
                 };
                 D3D11::device->CreateInputLayout(layoutDesc, ARRAYSIZE(layoutDesc), vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), &D3D11::inputLayout);
 
@@ -209,6 +230,61 @@ namespace D3D11
             constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
             constantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
             D3D11::device->CreateBuffer(&constantBufferDesc, nullptr, &D3D11::constantBuffer);
+        }
+
+        // Texture
+        {
+            int width;
+            int height;
+            unsigned char* textureData { stbi_load("../data/textures/golem.png", &width, &height, nullptr, 4) };
+
+            if (!textureData)
+            {
+                error = L"STB: Failed to load texture";
+            }
+
+            if (error.empty())
+            {
+                // create texture
+                D3D11_TEXTURE2D_DESC textureDesc {};
+                textureDesc.Width = width;
+                textureDesc.Height = height;
+                textureDesc.MipLevels = 1;
+                textureDesc.ArraySize = 1;
+                textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+                textureDesc.SampleDesc.Count = 1;
+                textureDesc.Usage = D3D11_USAGE_IMMUTABLE;
+                textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+                ID3D11Texture2D* texture;
+                D3D11_SUBRESOURCE_DATA textureSRD {};
+                textureSRD.pSysMem = textureData;
+                textureSRD.SysMemPitch = width * 4;
+                D3D11::device->CreateTexture2D(&textureDesc, &textureSRD, &texture);
+
+                // create texture view
+                D3D11_SHADER_RESOURCE_VIEW_DESC textureSRVDesc;
+                textureSRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+                textureSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+                textureSRVDesc.Texture2D.MipLevels = textureDesc.MipLevels;
+                textureSRVDesc.Texture2D.MostDetailedMip = 0;
+                D3D11::device->CreateShaderResourceView(texture, &textureSRVDesc, textureSRV.GetAddressOf());
+                texture->Release();
+
+                stbi_image_free(textureData);
+            }
+        }
+        
+        // point sampler
+        {
+            D3D11_SAMPLER_DESC pointSamplerDesc {};
+            pointSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+            pointSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+            pointSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+            pointSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+            pointSamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+
+            D3D11:device->CreateSamplerState(&pointSamplerDesc, &pointSampler);
         }
 
         if (!error.empty())
@@ -269,12 +345,12 @@ namespace D3D11
     {
         Constants mvp;
         mvp.model = HMM_MulM4(
-            HMM_Translate(HMM_V3(0.0f, 300.0f, 0.0f)),
+            HMM_Translate(HMM_V3(0.0f, 0.0f, 0.0f)),
             HMM_Scale(HMM_V3(100.0f, 100.0f, 1.0f))
         );
 
         HMM_Mat4 view { HMM_M4D(1.0f) };
-        HMM_Mat4 projection { HMM_Orthographic_RH_ZO(-640.0f, 640.0f, -360.0f, 360.0f, NEAR_PLANE, FAR_PLANE) };
+        HMM_Mat4 projection { HMM_Orthographic_RH_ZO(0.0f, 1280.0f, 720.0f, 0, NEAR_PLANE, FAR_PLANE) };
         HMM_Mat4 viewProjection { HMM_MulM4(projection, view) };
         mvp.viewProjection = viewProjection;
         
@@ -461,6 +537,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
         D3D11::BeginFrame();
         {
+            D3D11::context->OMSetBlendState(D3D11::blendState.Get(), 0, 0xFFFFFFFF);
             // setup input assembly
             UINT stride { sizeof(Vertex) };
             UINT offset { 0 };
@@ -474,6 +551,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             D3D11::context->VSSetConstantBuffers(0, 1, D3D11::constantBuffer.GetAddressOf());
 
             D3D11::context->PSSetShader(D3D11::pixelShader.Get(), nullptr, 0);
+            D3D11::context->PSSetShaderResources(0, 1, D3D11::textureSRV.GetAddressOf());
+            D3D11::context->PSSetSamplers(0, 1, D3D11::pointSampler.GetAddressOf());
 
             // draw
             D3D11::context->DrawIndexed(ARRAYSIZE(indices), 0, 0);

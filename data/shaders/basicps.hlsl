@@ -1,16 +1,13 @@
+Texture2D tex : register(t0);
+SamplerState pointsampler : register(s0);
+
 struct PSInput
 {
-    float4 position : SV_Position;
+    float4 position : SV_POSITION;
+    float2 uv : TEXCOORD;
 };
 
-struct PSOutput
+float4 PSMain(PSInput input) : SV_TARGET
 {
-    float4 colour : SV_Target0;
-};
-
-PSOutput PSMain(PSInput input)
-{
-    PSOutput output = (PSOutput)0;
-    output.colour = float4(1.0f, 0.5f, 0.0f, 1.0f);
-    return output;
+    return tex.Sample(pointsampler, input.uv);
 }
