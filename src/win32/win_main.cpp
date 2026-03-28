@@ -66,8 +66,6 @@ namespace D3D11
         HWND handle;
         Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView> view;
-        Microsoft::WRL::ComPtr<ID3D11Texture2D> depthBuffer;
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView;
 
         // TODO:: Change this into a Vec2 lastResolution variable
         UINT lastWidth;
@@ -378,33 +376,6 @@ namespace D3D11
             framebuffer->Release();
         }
 
-        if (resolutionChanged)
-        {
-            // reset old resources
-            D3D11::window.depthBuffer.Reset();
-            D3D11::window.depthView.Reset();
-
-
-            // create depth buffer target
-            {
-                D3D11_TEXTURE2D_DESC depthDesc {};
-                depthDesc.Width = width;
-                depthDesc.Height = height;
-                depthDesc.MipLevels = 1;
-                depthDesc.ArraySize = 1;
-                depthDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-                depthDesc.SampleDesc.Count = 1;
-                depthDesc.SampleDesc.Quality = 0;
-                depthDesc.Usage = D3D11_USAGE_DEFAULT;
-                depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-                depthDesc.CPUAccessFlags = 0;
-                depthDesc.MiscFlags = 0;
-
-                D3D11::device->CreateTexture2D(&depthDesc, nullptr, &D3D11::window.depthBuffer);
-                D3D11::device->CreateDepthStencilView(D3D11::window.depthBuffer.Get(), nullptr, &D3D11::window.depthView);
-            }
-        }
-
         {
             D3D11_MAPPED_SUBRESOURCE constantBufferMSR;
             context->Map(constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &constantBufferMSR);
@@ -422,10 +393,8 @@ namespace D3D11
             D3D11_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
 
             D3D11::context->OMSetRenderTargets(1, D3D11::window.view.GetAddressOf(),
-                D3D11::window.depthView.Get());
+                nullptr);
             D3D11::context->RSSetViewports(1, &viewport);
-            D3D11::context->ClearDepthStencilView(D3D11::window.depthView.Get(),
-                D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
         }
     }
 
