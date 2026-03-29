@@ -1,79 +1,21 @@
-#define UNICODE
-
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <d3d11.h>
-#include <dxgi1_3.h>
-#include <wrl.h>
-#include <d3dcompiler.h>
-#include <string>
+#include "renderer/renderer_d3d11.h"
 
 #define HANDMADE_MATH_IMPLEMENTATION
 #include "HandmadeMath.h"
 
+// TODO:: later on maybe this should not be in this file at this layer level?
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#define NEAR_PLANE -1.0f
-#define FAR_PLANE 1.0f
 
-struct Constants
-{
-    HMM_Mat4 model;
-    HMM_Mat4 viewProjection;
-};
-
-struct Vertex
-{
-    float position[3];
-    float uv[2];
-};
-
-// Pivot point is top left like raylib'
-// TODO:: at the moment I'm thinking that there should be two quad functions or a way to change the pivot
-// tiles i'd prefer to be at top left pivot but certain objects i'd prefer the pivot to be in the centre.
-constexpr Vertex vertices[] =
-{
-    {0.0f, 0.0f, 0.0f,  0.0f, 0.0f},  // top left
-    {1.0f, 0.0f, 0.0f,  1.0f, 0.0f},  // top right
-    {1.0f, 1.0f, 0.0f,  1.0f, 1.0f},  // bottom right
-    {0.0f, 1.0f, 0.0f,  0.0f, 1.0f},  // bottom left
-};
-
-constexpr uint16_t indices[] =
-{
-    0, 1, 2, // t1
-    0, 2, 3 // t2
-};
-
-// TODO:: W32_D3D11 globals maybe make the globals a struct like the window?
 namespace D3D11
 {
-    //static HMODULE dxgiModule;
-    //static HMODULE d3d11Module;
-    //static HMODULE d3compilerModule;
+    Microsoft::WRL::ComPtr<ID3D11Device> device;
+    Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
+    Microsoft::WRL::ComPtr<ID3D11Debug> debug;
+    Microsoft::WRL::ComPtr<IDXGIFactory2> factory;
 
-    static Microsoft::WRL::ComPtr<ID3D11Device> device;
-    static Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
-    static Microsoft::WRL::ComPtr<ID3D11Debug> debug;
-    static Microsoft::WRL::ComPtr<IDXGIFactory2> factory;
-
-
-    // TODO:: We can pull out the win32 coupling and pass this d3d11 window equpping
-    // related data to a struct w32window via a template type.
-    struct Window
-    {
-        HWND handle;
-        Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
-        Microsoft::WRL::ComPtr<ID3D11RenderTargetView> view;
-
-        // TODO:: Change this into a Vec2 lastResolution variable
-        UINT lastWidth;
-        UINT lastHeight;
-    };
-
-    static Window window;
-
+    Window window;
 
     // Renderer
     Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
@@ -86,7 +28,7 @@ namespace D3D11
     Microsoft::WRL::ComPtr<ID3D11SamplerState> pointSampler;
     Microsoft::WRL::ComPtr<ID3D11BlendState> blendState;
 
-    static void Init()
+    void Init()
     {
         std::wstring error;
 
@@ -96,16 +38,16 @@ namespace D3D11
             D3D_FEATURE_LEVEL deviceFeatureLevel;
             UINT flags = 0;
 #if defined(DEBUG) || defined(_DEBUG)
-             flags |= D3D11_CREATE_DEVICE_DEBUG;
+            flags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
 
             HRESULT deviceResult { D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0,
                 flags, 0, 0,
                 D3D11_SDK_VERSION,
-                &D3D11::device,
+                &device,
                 &deviceFeatureLevel,
-                &D3D11::context
+                &context
             ) };
 
             if (deviceResult != S_OK)
@@ -123,7 +65,7 @@ namespace D3D11
         // debug
         if (error.empty())
         {
-            HRESULT debugResult { D3D11::device.As(&D3D11::debug) };
+            HRESULT debugResult { device.As(&debug) };
 
             if (debugResult != S_OK)
             {
@@ -134,7 +76,7 @@ namespace D3D11
         // factory
         if (error.empty())
         {
-            HRESULT factoryResult { CreateDXGIFactory1(IID_PPV_ARGS(&D3D11::factory)) };
+            HRESULT factoryResult { CreateDXGIFactory1(IID_PPV_ARGS(&factory)) };
 
             if (factoryResult != S_OK)
             {
@@ -159,7 +101,7 @@ namespace D3D11
             blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
             blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
             blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-            D3D11::device->CreateBlendState(&blendDesc, &blendState);
+            device->CreateBlendState(&blendDesc, &blendState);
         }
 
         // Shader
@@ -189,15 +131,15 @@ namespace D3D11
 
             if (error.empty())
             {
-                D3D11::device->CreateVertexShader(vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), 0, &D3D11::vertexShader);
-                D3D11::device->CreatePixelShader(pixelShaderCSO->GetBufferPointer(), pixelShaderCSO->GetBufferSize(), 0, &D3D11::pixelShader);
+                device->CreateVertexShader(vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), 0, &vertexShader);
+                device->CreatePixelShader(pixelShaderCSO->GetBufferPointer(), pixelShaderCSO->GetBufferSize(), 0, &pixelShader);
 
                 D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
                 {
                     { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,                            D3D11_INPUT_PER_VERTEX_DATA, 0 },
                     { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
                 };
-                D3D11::device->CreateInputLayout(layoutDesc, ARRAYSIZE(layoutDesc), vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), &D3D11::inputLayout);
+                device->CreateInputLayout(layoutDesc, ARRAYSIZE(layoutDesc), vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), &inputLayout);
 
                 D3D11_BUFFER_DESC vertexBufferDesc {};
                 vertexBufferDesc.ByteWidth = sizeof(vertices);
@@ -205,7 +147,7 @@ namespace D3D11
                 vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
                 D3D11_SUBRESOURCE_DATA vertexBufferSRD { vertices };
-                D3D11::device->CreateBuffer(&vertexBufferDesc, &vertexBufferSRD, &D3D11::vertexBuffer);
+                device->CreateBuffer(&vertexBufferDesc, &vertexBufferSRD, &vertexBuffer);
             }
 
             // index buffer
@@ -217,7 +159,7 @@ namespace D3D11
                 indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 
                 D3D11_SUBRESOURCE_DATA indexBufferSRD { indices };
-                D3D11::device->CreateBuffer(&indexBufferDesc, &indexBufferSRD, &D3D11::indexBuffer);
+                device->CreateBuffer(&indexBufferDesc, &indexBufferSRD, &indexBuffer);
             }
         }
         // Constant buffer
@@ -227,7 +169,7 @@ namespace D3D11
             constantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
             constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
             constantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-            D3D11::device->CreateBuffer(&constantBufferDesc, nullptr, &D3D11::constantBuffer);
+            device->CreateBuffer(&constantBufferDesc, nullptr, &constantBuffer);
         }
 
         // Texture
@@ -258,7 +200,7 @@ namespace D3D11
                 D3D11_SUBRESOURCE_DATA textureSRD {};
                 textureSRD.pSysMem = textureData;
                 textureSRD.SysMemPitch = width * 4;
-                D3D11::device->CreateTexture2D(&textureDesc, &textureSRD, &texture);
+                device->CreateTexture2D(&textureDesc, &textureSRD, &texture);
 
                 // create texture view
                 D3D11_SHADER_RESOURCE_VIEW_DESC textureSRVDesc;
@@ -266,13 +208,13 @@ namespace D3D11
                 textureSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
                 textureSRVDesc.Texture2D.MipLevels = textureDesc.MipLevels;
                 textureSRVDesc.Texture2D.MostDetailedMip = 0;
-                D3D11::device->CreateShaderResourceView(texture, &textureSRVDesc, textureSRV.GetAddressOf());
+                device->CreateShaderResourceView(texture, &textureSRVDesc, textureSRV.GetAddressOf());
                 texture->Release();
 
                 stbi_image_free(textureData);
             }
         }
-        
+
         // point sampler
         {
             D3D11_SAMPLER_DESC pointSamplerDesc {};
@@ -282,7 +224,7 @@ namespace D3D11
             pointSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
             pointSamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 
-            D3D11:device->CreateSamplerState(&pointSamplerDesc, &pointSampler);
+            device->CreateSamplerState(&pointSamplerDesc, &pointSampler);
         }
 
         if (!error.empty())
@@ -292,7 +234,7 @@ namespace D3D11
         }
     }
 
-    static void WindowEquip(HWND handle)
+     void WindowEquip(HWND handle)
     {
         std::wstring error;
 
@@ -317,13 +259,13 @@ namespace D3D11
             DXGI_SWAP_CHAIN_FULLSCREEN_DESC swapChainFullscreenDesc {};
             swapChainFullscreenDesc.Windowed = true;
 
-            HRESULT swapChainResult { D3D11::factory->CreateSwapChainForHwnd(
-                D3D11::device.Get(),
+            HRESULT swapChainResult { factory->CreateSwapChainForHwnd(
+                device.Get(),
                 handle,
                 &swapChainDesc,
                 &swapChainFullscreenDesc,
                 0,
-                &D3D11::window.swapChain
+                &window.swapChain
             ) };
 
             if (swapChainResult != S_OK)
@@ -339,40 +281,49 @@ namespace D3D11
         }
     }
 
-    static void BeginFrame()
+    void BeginFrame()
     {
         Constants mvp;
         mvp.model = HMM_MulM4(
             HMM_Translate(HMM_V3(0.0f, 0.0f, 0.0f)),
-            HMM_Scale(HMM_V3(100.0f, 100.0f, 1.0f))
+            HMM_Scale(HMM_V3(32.0f, 32.0f, 1.0f))
         );
 
-        HMM_Mat4 view { HMM_M4D(1.0f) };
-        HMM_Mat4 projection { HMM_Orthographic_RH_ZO(0.0f, 1280.0f, 720.0f, 0, NEAR_PLANE, FAR_PLANE) };
-        HMM_Mat4 viewProjection { HMM_MulM4(projection, view) };
-        mvp.viewProjection = viewProjection;
-        
         RECT clientRect {};
-        GetClientRect(D3D11::window.handle, &clientRect);
+        GetClientRect(window.handle, &clientRect);
         UINT width = clientRect.right - clientRect.left;
         UINT height = clientRect.bottom - clientRect.top;
 
-        bool resolutionChanged { (D3D11::window.lastWidth != width ||
-            D3D11::window.lastHeight != height) };
+        constexpr float VIRTUAL_HEIGHT = 360.0f;
+        float aspect = (float)width / (float)height;
+        float virtualWidth = VIRTUAL_HEIGHT * aspect;
 
-        D3D11::window.lastWidth = width;
-        D3D11::window.lastHeight = height;
+        HMM_Mat4 view { HMM_M4D(1.0f) };
+        HMM_Mat4 projection { HMM_Orthographic_RH_ZO(
+        0.0f, virtualWidth,   // right edge grows on wider screens
+        VIRTUAL_HEIGHT, 0.0f, // top/bottom always 360 units
+        NEAR_PLANE, FAR_PLANE
+        ) };
+
+        HMM_Mat4 viewProjection { HMM_MulM4(projection, view) };
+        mvp.viewProjection = viewProjection;
+
+        bool resolutionChanged { (window.lastWidth != width ||
+            window.lastHeight != height) };
+
+        window.lastWidth = width;
+        window.lastHeight = height;
 
         // resize swapchain and framebuffer
-        if(resolutionChanged)
+        if (resolutionChanged)
         {
-            D3D11::context->OMSetRenderTargets(0, 0, 0);
-            D3D11::window.view.Reset();
-            D3D11::window.swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+            context->OMSetRenderTargets(0, 0, 0);
+            window.view.Reset();
+            window.swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 
             ID3D11Texture2D* framebuffer = 0;
-            D3D11::window.swapChain->GetBuffer(0, IID_PPV_ARGS(&framebuffer));
-            D3D11::device->CreateRenderTargetView(framebuffer, 0, &D3D11::window.view);
+            window.swapChain->GetBuffer(0, IID_PPV_ARGS(&framebuffer));
+            device->CreateRenderTargetView(framebuffer, 0, &window.view);
             framebuffer->Release();
         }
 
@@ -380,154 +331,26 @@ namespace D3D11
             D3D11_MAPPED_SUBRESOURCE constantBufferMSR;
             context->Map(constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &constantBufferMSR);
             memcpy(constantBufferMSR.pData, &mvp, sizeof(Constants));
-            D3D11::context->Unmap(D3D11::constantBuffer.Get(), 0);
+            context->Unmap(constantBuffer.Get(), 0);
         }
 
         constexpr float clearColour[] = { 1.0f, 0.0f, 1.0f, 1.0f };
-        D3D11::context->ClearRenderTargetView(D3D11::window.view.Get(), clearColour);
+        context->ClearRenderTargetView(window.view.Get(), clearColour);
 
         // Update viewport
         {
-            UINT width = D3D11::window.lastWidth;
-            UINT height = D3D11::window.lastHeight;
+            UINT width = window.lastWidth;
+            UINT height = window.lastHeight;
             D3D11_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
 
-            D3D11::context->OMSetRenderTargets(1, D3D11::window.view.GetAddressOf(),
+            context->OMSetRenderTargets(1, window.view.GetAddressOf(),
                 nullptr);
-            D3D11::context->RSSetViewports(1, &viewport);
+            context->RSSetViewports(1, &viewport);
         }
     }
 
-    static void EndFrame()
+    void EndFrame()
     {
-        D3D11::window.swapChain->Present(1, 0);
+        window.swapChain->Present(1, 0);
     }
-}
-
-static bool running;
-
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-    LRESULT result { 0 };
-    switch (uMsg)
-    {
-        case WM_CLOSE:
-        {
-            running = false;
-            result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
-        }
-        break;
-        case WM_DESTROY:
-        {
-            running = false;
-            result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
-        }
-        break;
-        default:
-        {
-            result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
-        }
-        break;
-    }
-
-    return result;
-}
-
-namespace W32
-{
-    // TODO:: Pass in a rect type?
-    static HWND WindowCreate(int width, int height, std::wstring_view title)
-    {
-        HINSTANCE hInstance = GetModuleHandleW(0);
-
-        // register window class
-        {
-            WNDCLASSW windowClass {};
-            windowClass.lpfnWndProc = WindowProc;
-            windowClass.hInstance = hInstance;
-            windowClass.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
-            windowClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-            windowClass.hCursor = LoadCursorW(nullptr, IDC_ARROW);
-            windowClass.lpszClassName = L"graphicalWindow";
-            RegisterClassW(&windowClass);
-        }
-
-        // create window
-        HWND handle = 0;
-        {
-            // Ensure client area is exactly width x height
-            RECT windowRect { 0, 0, width, height };
-            AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
-
-            handle = CreateWindowEx(
-                0, L"graphicalWindow", title.data(), WS_OVERLAPPEDWINDOW,
-                CW_USEDEFAULT, CW_USEDEFAULT,
-                windowRect.right - windowRect.left,
-                windowRect.bottom - windowRect.top,
-                nullptr, nullptr, hInstance, nullptr
-            );
-        }
-
-        return handle;
-    }
-
-    // TODO:: add microsecond timer with QueryPerformanceFrequency and QueryPerformanceCounter
-}
-
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
-{
-    D3D11::window.handle = W32::WindowCreate(1280, 720, L"Farming Sim Prototype");
-    if (!D3D11::window.handle)
-    {
-        MessageBoxW(nullptr, L"WIN32: Failed to create window", L"Error", MB_ICONERROR | MB_OK);
-        ExitProcess(1);
-    }
-
-    D3D11::Init();
-    D3D11::WindowEquip(D3D11::window.handle);
-
-    ShowWindow(D3D11::window.handle, SW_SHOW);
-
-    running = true;
-
-    while (running)
-    {
-        MSG message;
-        while (PeekMessageW(&message, 0, 0, 0, PM_REMOVE))
-        {
-            if (message.message == WM_QUIT)
-            {
-                running = false;
-            }
-            TranslateMessage(&message);
-            DispatchMessage(&message);
-        }
-
-
-        D3D11::BeginFrame();
-        {
-            D3D11::context->OMSetBlendState(D3D11::blendState.Get(), 0, 0xFFFFFFFF);
-            // setup input assembly
-            UINT stride { sizeof(Vertex) };
-            UINT offset { 0 };
-            D3D11::context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            D3D11::context->IASetInputLayout(D3D11::inputLayout.Get());
-            D3D11::context->IASetVertexBuffers(0, 1, D3D11::vertexBuffer.GetAddressOf(), &stride, &offset);
-            D3D11::context->IASetIndexBuffer(D3D11::indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
-
-            // setup shaders
-            D3D11::context->VSSetShader(D3D11::vertexShader.Get(), nullptr, 0);
-            D3D11::context->VSSetConstantBuffers(0, 1, D3D11::constantBuffer.GetAddressOf());
-
-            D3D11::context->PSSetShader(D3D11::pixelShader.Get(), nullptr, 0);
-            D3D11::context->PSSetShaderResources(0, 1, D3D11::textureSRV.GetAddressOf());
-            D3D11::context->PSSetSamplers(0, 1, D3D11::pointSampler.GetAddressOf());
-
-            // draw
-            D3D11::context->DrawIndexed(ARRAYSIZE(indices), 0, 0);
-        }
-        D3D11::EndFrame();
-    }
-
-    return 0;
 }
