@@ -8,7 +8,8 @@
 #include <d3dcompiler.h>
 #include <string>
 
-#include "renderer/renderer_d3d11.h"
+#include "renderer/backend/d3d11_backend.h"
+#include "renderer/renderer.h"
 
 static bool running;
 
@@ -96,6 +97,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     running = true;
 
+    Texture golem { Renderer::LoadTexture("../data/textures/golem.png") };
+    Texture grass { Renderer::LoadTexture("../data/textures/grass.png") };
+
+    RectF32 golemDest;
+    golemDest.height = 32;
+    golemDest.width = 32;
+    golemDest.x = 64;
+    golemDest.y = 64;
+
+
+
     while (running)
     {
         MSG message;
@@ -110,29 +122,25 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         }
 
 
-        D3D11::BeginFrame();
-        {
-            D3D11::context->OMSetBlendState(D3D11::blendState.Get(), 0, 0xFFFFFFFF);
-            // setup input assembly
-            UINT stride { sizeof(Vertex) };
-            UINT offset { 0 };
-            D3D11::context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            D3D11::context->IASetInputLayout(D3D11::inputLayout.Get());
-            D3D11::context->IASetVertexBuffers(0, 1, D3D11::vertexBuffer.GetAddressOf(), &stride, &offset);
-            D3D11::context->IASetIndexBuffer(D3D11::indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+        Renderer::BeginFrame();
 
-            // setup shaders
-            D3D11::context->VSSetShader(D3D11::vertexShader.Get(), nullptr, 0);
-            D3D11::context->VSSetConstantBuffers(0, 1, D3D11::constantBuffer.GetAddressOf());
+            for (int i { 0 }; i < 1280; i += 32)
+            {
+                for (int j = { 0 }; j < 360; j += 32)
+                {
+                    RectF32 grassDest;
+                    grassDest.height = 32;
+                    grassDest.width = 32;
+                    grassDest.x = i;
+                    grassDest.y = j;
+                    Renderer::DrawSprite(grass, grassDest);
+                }
+            }
 
-            D3D11::context->PSSetShader(D3D11::pixelShader.Get(), nullptr, 0);
-            D3D11::context->PSSetShaderResources(0, 1, D3D11::textureSRV.GetAddressOf());
-            D3D11::context->PSSetSamplers(0, 1, D3D11::pointSampler.GetAddressOf());
+            Renderer::DrawSprite(golem, golemDest);
 
-            // draw
-            D3D11::context->DrawIndexed(ARRAYSIZE(indices), 0, 0);
-        }
-        D3D11::EndFrame();
+        Renderer::EndFrame();
+
     }
 
     return 0;

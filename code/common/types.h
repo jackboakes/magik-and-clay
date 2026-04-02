@@ -1,6 +1,7 @@
 #pragma once
+#include <cstdint>
 
-struct Recangle
+struct RectF32
 {
     float x;
     float y;

@@ -9,6 +9,9 @@
 #include <string>
 
 #include "HandmadeMath.h"
+#include "renderer/renderer.h"
+
+#include <vector>
 
 #define NEAR_PLANE 0.0f
 #define FAR_PLANE 100.0f
@@ -25,7 +28,7 @@ struct Vertex
     float uv[2];
 };
 
-// Pivot point is top left like raylib'
+// Pivot point is top left like raylib
 // TODO:: at the moment I'm thinking that there should be two quad functions or a way to change the pivot
 // tiles i'd prefer to be at top left pivot but certain objects i'd prefer the pivot to be in the centre.
 constexpr Vertex vertices[] =
@@ -80,5 +83,7 @@ namespace D3D11
     void Init();
     void WindowEquip(HWND handle);
     void BeginFrame();
-    void EndFrame();
+    void EndFrame(const std::vector<SpriteInstance>& spriteQueue, HMM_Mat4 viewProjection);
+
+    Texture CreateTexture(unsigned char* textureData, int width, int height);
 }

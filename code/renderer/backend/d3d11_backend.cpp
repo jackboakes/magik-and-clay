@@ -1,11 +1,7 @@
-#include "renderer/renderer_d3d11.h"
+#include "renderer/backend/d3d11_backend.h"
 
 #define HANDMADE_MATH_IMPLEMENTATION
 #include "HandmadeMath.h"
-
-// TODO:: later on maybe this should not be in this file at this layer level?
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 
 
 namespace D3D11
@@ -24,7 +20,7 @@ namespace D3D11
     Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
-    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> textureSRV;
+    std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> textureStorage;
     Microsoft::WRL::ComPtr<ID3D11SamplerState> pointSampler;
     Microsoft::WRL::ComPtr<ID3D11BlendState> blendState;
 
@@ -172,49 +168,6 @@ namespace D3D11
             device->CreateBuffer(&constantBufferDesc, nullptr, &constantBuffer);
         }
 
-        // Texture
-        {
-            int width;
-            int height;
-            unsigned char* textureData { stbi_load("../data/textures/golem.png", &width, &height, nullptr, 4) };
-
-            if (!textureData)
-            {
-                error = L"STB: Failed to load texture";
-            }
-
-            if (error.empty())
-            {
-                // create texture
-                D3D11_TEXTURE2D_DESC textureDesc {};
-                textureDesc.Width = width;
-                textureDesc.Height = height;
-                textureDesc.MipLevels = 1;
-                textureDesc.ArraySize = 1;
-                textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-                textureDesc.SampleDesc.Count = 1;
-                textureDesc.Usage = D3D11_USAGE_IMMUTABLE;
-                textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-
-                ID3D11Texture2D* texture;
-                D3D11_SUBRESOURCE_DATA textureSRD {};
-                textureSRD.pSysMem = textureData;
-                textureSRD.SysMemPitch = width * 4;
-                device->CreateTexture2D(&textureDesc, &textureSRD, &texture);
-
-                // create texture view
-                D3D11_SHADER_RESOURCE_VIEW_DESC textureSRVDesc;
-                textureSRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-                textureSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-                textureSRVDesc.Texture2D.MipLevels = textureDesc.MipLevels;
-                textureSRVDesc.Texture2D.MostDetailedMip = 0;
-                device->CreateShaderResourceView(texture, &textureSRVDesc, textureSRV.GetAddressOf());
-                texture->Release();
-
-                stbi_image_free(textureData);
-            }
-        }
-
         // point sampler
         {
             D3D11_SAMPLER_DESC pointSamplerDesc {};
@@ -283,30 +236,10 @@ namespace D3D11
 
     void BeginFrame()
     {
-        Constants mvp;
-        mvp.model = HMM_MulM4(
-            HMM_Translate(HMM_V3(0.0f, 0.0f, 0.0f)),
-            HMM_Scale(HMM_V3(32.0f, 32.0f, 1.0f))
-        );
-
         RECT clientRect {};
         GetClientRect(window.handle, &clientRect);
         UINT width = clientRect.right - clientRect.left;
         UINT height = clientRect.bottom - clientRect.top;
-
-        constexpr float VIRTUAL_HEIGHT = 360.0f;
-        float aspect = (float)width / (float)height;
-        float virtualWidth = VIRTUAL_HEIGHT * aspect;
-
-        HMM_Mat4 view { HMM_M4D(1.0f) };
-        HMM_Mat4 projection { HMM_Orthographic_RH_ZO(
-        0.0f, virtualWidth,   // right edge grows on wider screens
-        VIRTUAL_HEIGHT, 0.0f, // top/bottom always 360 units
-        NEAR_PLANE, FAR_PLANE
-        ) };
-
-        HMM_Mat4 viewProjection { HMM_MulM4(projection, view) };
-        mvp.viewProjection = viewProjection;
 
         bool resolutionChanged { (window.lastWidth != width ||
             window.lastHeight != height) };
@@ -327,13 +260,6 @@ namespace D3D11
             framebuffer->Release();
         }
 
-        {
-            D3D11_MAPPED_SUBRESOURCE constantBufferMSR;
-            context->Map(constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &constantBufferMSR);
-            memcpy(constantBufferMSR.pData, &mvp, sizeof(Constants));
-            context->Unmap(constantBuffer.Get(), 0);
-        }
-
         constexpr float clearColour[] = { 1.0f, 0.0f, 1.0f, 1.0f };
         context->ClearRenderTargetView(window.view.Get(), clearColour);
 
@@ -349,8 +275,79 @@ namespace D3D11
         }
     }
 
-    void EndFrame()
+    void EndFrame(const std::vector<SpriteInstance>& spriteQueue, HMM_Mat4 viewProjection)
     {
+        // setup input assembly
+        UINT stride { sizeof(Vertex) };
+        UINT offset { 0 };
+        D3D11::context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        D3D11::context->IASetInputLayout(D3D11::inputLayout.Get());
+        D3D11::context->IASetVertexBuffers(0, 1, D3D11::vertexBuffer.GetAddressOf(), &stride, &offset);
+        D3D11::context->IASetIndexBuffer(D3D11::indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+
+        // setup shaders
+        D3D11::context->VSSetShader(D3D11::vertexShader.Get(), nullptr, 0);
+        D3D11::context->VSSetConstantBuffers(0, 1, D3D11::constantBuffer.GetAddressOf());
+
+        D3D11::context->PSSetShader(D3D11::pixelShader.Get(), nullptr, 0);
+        D3D11::context->PSSetSamplers(0, 1, D3D11::pointSampler.GetAddressOf());
+
+        D3D11::context->OMSetBlendState(D3D11::blendState.Get(), 0, 0xFFFFFFFF);
+
+        // draw sprites
+        for (const auto& sprite : spriteQueue)
+        {
+            HMM_Mat4 model {
+                HMM_MulM4(HMM_Translate(HMM_V3(sprite.destination.x, sprite.destination.y, 0.0f)),
+                HMM_Scale(HMM_V3(sprite.destination.width, sprite.destination.height, 0.0f)))
+            };
+
+            Constants constants;
+            constants.model = model;
+            constants.viewProjection = viewProjection;
+
+            {
+                D3D11_MAPPED_SUBRESOURCE constantBufferMSR;
+                context->Map(constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &constantBufferMSR);
+                memcpy(constantBufferMSR.pData, &constants, sizeof(Constants));
+                context->Unmap(constantBuffer.Get(), 0);
+            }
+
+            auto& textureSRV { textureStorage[sprite.texture.handle] };
+
+            context->PSSetShaderResources(0, 1, textureSRV.GetAddressOf());
+            context->DrawIndexed(6, 0, 0);
+        }
+
+        // swap buffer
         window.swapChain->Present(1, 0);
+    }
+
+    Texture CreateTexture(unsigned char* textureData, int width, int height)
+    {
+        D3D11_TEXTURE2D_DESC desc{};
+        desc.Width = width;
+        desc.Height = height;
+        desc.MipLevels = 1;
+        desc.ArraySize = 1;
+        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        desc.SampleDesc.Count = 1;
+        desc.Usage = D3D11_USAGE_IMMUTABLE;
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+        D3D11_SUBRESOURCE_DATA subData{};
+        subData.pSysMem = textureData;
+        subData.SysMemPitch = width * 4;
+
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
+        device->CreateTexture2D(&desc, &subData, &texture);
+
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
+        device->CreateShaderResourceView(texture.Get(), nullptr, &srv);
+
+        uint32_t handle = static_cast<uint32_t>(textureStorage.size());
+        textureStorage.push_back(srv);
+
+        return Texture{handle};
     }
 }

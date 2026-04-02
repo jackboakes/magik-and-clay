@@ -15,10 +15,30 @@ if(WIN32)
 	add_executable(${PROJECT_NAME} WIN32 
 	code/win32/win_main.cpp
 	code/common/types.h
-	code/renderer/renderer_d3d11.cpp
-	code/renderer/renderer_d3d11.h
+	code/renderer/renderer.cpp
+	code/renderer/renderer.h
+	code/renderer/backend/d3d11_backend.cpp
+	code/renderer/backend/d3d11_backend.h
 	third_party/HandmadeMath/HandmadeMath.h
 	third_party/stb/stb_image.h)
+	
+	source_group("win32" FILES
+		code/win32/win_main.cpp
+	)
+ 
+	source_group("common" FILES
+		code/common/types.h
+	)
+ 
+	source_group("renderer" FILES
+		code/renderer/renderer.h
+		code/renderer/renderer.cpp
+	)
+ 
+	source_group("renderer/backend" FILES
+	code/renderer/backend/d3d11_backend.h
+	code/renderer/backend/d3d11_backend.cpp
+	)
 	
 	source_group("third_party" FILES
     third_party/HandmadeMath/HandmadeMath.h
