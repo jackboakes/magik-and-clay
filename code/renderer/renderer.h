@@ -18,6 +18,8 @@ struct SpriteInstance
 
 namespace Renderer
 {
+    void WindowCreate(int width, int height, std::wstring_view title);
+
     Texture LoadTexture(std::string_view path);
 
     void DrawSprite(Texture texture, RectF32 destination);

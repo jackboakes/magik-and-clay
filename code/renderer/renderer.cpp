@@ -6,6 +6,8 @@
 
 #include <vector>
 
+#include "win32/win_core.h"
+
 namespace Renderer
 {
     static constexpr float VIRTUAL_HEIGHT = 360.0f;
@@ -13,6 +15,22 @@ namespace Renderer
     static HWND windowHandle;
     static std::vector<SpriteInstance> spriteQueue;
     static HMM_Mat4 viewProjection;
+
+
+    void WindowCreate(int width, int height, std::wstring_view title)
+    {
+        D3D11::window.handle = W32::WindowCreate(width, height, title);
+        if (!D3D11::window.handle)
+        {
+            MessageBoxW(nullptr, L"WIN32: Failed to create window", L"Error", MB_ICONERROR | MB_OK);
+            ExitProcess(1);
+        }
+
+        D3D11::Init();
+        D3D11::WindowEquip(D3D11::window.handle);
+
+        ShowWindow(D3D11::window.handle, SW_SHOW);
+    }
 
 
     Texture LoadTexture(std::string_view path)

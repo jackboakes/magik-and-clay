@@ -14,6 +14,8 @@ if(WIN32)
 
 	add_executable(${PROJECT_NAME} WIN32 
 	code/win32/win_main.cpp
+	code/win32/win_core.cpp
+	code/win32/win_core.h
 	code/common/types.h
 	code/renderer/renderer.cpp
 	code/renderer/renderer.h
@@ -24,6 +26,8 @@ if(WIN32)
 	
 	source_group("win32" FILES
 		code/win32/win_main.cpp
+		code/win32/win_core.h
+		code/win32/win_core.cpp
 	)
  
 	source_group("common" FILES
