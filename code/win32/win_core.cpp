@@ -64,4 +64,23 @@ namespace W32
 
         return handle;
     }
+
+    RectF32 ClientRectFromWindow(const HWND handle)
+    {
+        RectF32 result;
+        RECT clientRect {};
+
+        if (GetClientRect(handle, &clientRect))
+        {
+            UINT width = clientRect.right - clientRect.left;
+            UINT height = clientRect.bottom - clientRect.top;
+
+            result.width = static_cast<float>(width);
+            result.height = static_cast<float>(height);
+            result.x = static_cast<float>(clientRect.left);
+            result.y = static_cast<float>(clientRect.top);
+        }
+
+        return result;
+    }
 }

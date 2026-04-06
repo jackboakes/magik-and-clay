@@ -13,8 +13,8 @@
 
 #include <vector>
 
-#define NEAR_PLANE 0.0f
-#define FAR_PLANE 100.0f
+constexpr float g_NearPlane { 0.0f };
+constexpr float g_FarPlane { 100.0f };
 
 struct Constants
 {

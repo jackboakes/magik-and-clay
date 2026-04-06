@@ -1,3 +1,10 @@
+/* TODO LIST::
+* Create a camera class?
+* Sprite sheet support by adding source to sprite instance
+* win32 specific timer
+* input
+*/
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 

@@ -3,6 +3,8 @@
 #define HANDMADE_MATH_IMPLEMENTATION
 #include "HandmadeMath.h"
 
+#include "win32/win_core.h"
+
 
 namespace D3D11
 {
@@ -194,12 +196,11 @@ namespace D3D11
         //swap chain
         {
             // Get the drawable area (the window area excluding the title bar and border)
-            RECT clientRect {};
-            GetClientRect(handle, &clientRect);
+            RectF32 clientRect { W32::ClientRectFromWindow(window.handle) };
 
             DXGI_SWAP_CHAIN_DESC1 swapChainDesc {};
-            swapChainDesc.Width = clientRect.right - clientRect.left;
-            swapChainDesc.Height = clientRect.bottom - clientRect.top;
+            swapChainDesc.Width = static_cast<UINT>(clientRect.width);
+            swapChainDesc.Height = static_cast<UINT>(clientRect.height);
             swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
             swapChainDesc.SampleDesc.Count = 1;
             swapChainDesc.SampleDesc.Quality = 0;
@@ -236,10 +237,10 @@ namespace D3D11
 
     void BeginFrame()
     {
-        RECT clientRect {};
-        GetClientRect(window.handle, &clientRect);
-        UINT width = clientRect.right - clientRect.left;
-        UINT height = clientRect.bottom - clientRect.top;
+        RectF32 clientRect { W32::ClientRectFromWindow(window.handle) };
+
+        const UINT width { static_cast<UINT>(clientRect.width) };
+        const UINT height { static_cast<UINT>(clientRect.height) };
 
         bool resolutionChanged { (window.lastWidth != width ||
             window.lastHeight != height) };
@@ -265,8 +266,8 @@ namespace D3D11
 
         // Update viewport
         {
-            UINT width = window.lastWidth;
-            UINT height = window.lastHeight;
+            UINT width { window.lastWidth };
+            UINT height { window.lastHeight };
             D3D11_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
 
             context->OMSetRenderTargets(1, window.view.GetAddressOf(),

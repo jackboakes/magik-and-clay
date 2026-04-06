@@ -10,9 +10,8 @@
 
 namespace Renderer
 {
-    static constexpr float VIRTUAL_HEIGHT = 360.0f;
+    static constexpr float VIRTUAL_HEIGHT { 360.0f };
 
-    static HWND windowHandle;
     static std::vector<SpriteInstance> spriteQueue;
     static HMM_Mat4 viewProjection;
 
@@ -63,13 +62,10 @@ namespace Renderer
         spriteQueue.clear();
         D3D11::BeginFrame();
 
-        RECT clientRect {};
-        GetClientRect(D3D11::window.handle, &clientRect);
-        UINT width = clientRect.right - clientRect.left;
-        UINT height = clientRect.bottom - clientRect.top;
+        RectF32 clientRect {W32::ClientRectFromWindow(D3D11::window.handle)};
 
-        float aspect = (float)width / (float)height;
-        float virtualWidth = VIRTUAL_HEIGHT * aspect;
+        float aspectRatio = clientRect.width / clientRect.height;
+        float virtualWidth = VIRTUAL_HEIGHT * aspectRatio;
 
         HMM_Mat4 view { HMM_M4D(1.0f) };
         HMM_Mat4 projection { HMM_Orthographic_RH_ZO(
