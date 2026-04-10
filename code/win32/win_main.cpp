@@ -10,12 +10,12 @@
 
 #include "win_core.h"
 #include "renderer/renderer.h"
+#include "input/input.h"
 
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
     Renderer::WindowCreate(1280, 720, L"Farming Sim Prototype");
-
 
     W32::running = true;
 
@@ -30,6 +30,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     while (W32::running)
     {
+        keyStatePrevious = keyStateCurrent;
+        sysEventQueue.clear();
+
         MSG message;
         while (PeekMessageW(&message, 0, 0, 0, PM_REMOVE))
         {
@@ -39,6 +42,19 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             }
             TranslateMessage(&message);
             DispatchMessage(&message);
+        }
+
+        for (const auto& event : sysEventQueue)
+        {
+            //TODO:: This is temporary as the user can skip keys if the user presses and releases on the same frame.
+            if (event.type == SysEventType::KEY_PRESS)
+            {
+                keyStateCurrent[static_cast<size_t>(event.key)] = true;
+            }
+            if (event.type == SysEventType::KEY_RELEASE)
+            {
+                keyStateCurrent[static_cast<size_t>(event.key)] = false;
+            }
         }
 
 
@@ -57,7 +73,25 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
                 }
             }
 
+            if (Input::IsKeyDown(Key::W))
+            {
+                golemDest.y -= 1;
+            }
+            if (Input::IsKeyDown(Key::A))
+            {
+                golemDest.x -= 1;
+            }
+            if (Input::IsKeyDown(Key::S))
+            {
+                golemDest.y += 1;
+            }
+            if (Input::IsKeyDown(Key::D))
+            {
+                golemDest.x += 1;
+            }
+
             Renderer::DrawSprite(golem, golemDest);
+            
 
         Renderer::EndFrame();
 

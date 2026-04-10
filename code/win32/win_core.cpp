@@ -1,5 +1,8 @@
 #include "win_core.h"
 
+#include "input/input.h"
+#include "win_input.h"
+
 namespace W32 
 {
     LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -17,6 +20,78 @@ namespace W32
         {
             running = false;
             result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
+        }
+        break;
+
+        // mouse input
+        case WM_LBUTTONUP:
+        case WM_MBUTTONUP:
+        case WM_RBUTTONUP:
+        case WM_LBUTTONDOWN:
+        case WM_MBUTTONDOWN:
+        case WM_RBUTTONDOWN:
+        {
+            bool mouseIsDown = (uMsg == WM_LBUTTONDOWN ||
+                uMsg == WM_RBUTTONDOWN ||
+                uMsg == WM_MBUTTONDOWN);
+
+            Key key = (uMsg == WM_LBUTTONDOWN || uMsg == WM_LBUTTONUP) ? Key::MOUSE_LEFT
+                : (uMsg == WM_RBUTTONDOWN || uMsg == WM_RBUTTONUP) ? Key::MOUSE_RIGHT
+                : Key::MOUSE_MIDDLE;
+
+
+
+            SysEvent event;
+            event.type = mouseIsDown ? SysEventType::KEY_PRESS : SysEventType::KEY_RELEASE;
+            event.key = key;
+            event.position.X = (float)(short)LOWORD(lParam);
+            event.position.Y = (float)(short)HIWORD(lParam);
+
+            Input::QueueSysEvent(event);
+        }
+        break;
+
+        case WM_MOUSEMOVE:
+        {
+            SysEvent event;
+
+            event.type = SysEventType::MOUSE_MOVE;
+            event.key = Key::NONE;
+            event.position.X = (float)(short)LOWORD(lParam);
+            event.position.Y = (float)(short)HIWORD(lParam);
+
+            Input::QueueSysEvent(event);
+        }
+        break;
+
+        // Keyboard input
+        case WM_SYSKEYDOWN:
+        case WM_SYSKEYUP:
+        {
+            // NOTE:: function keys are syskeys when alt is held
+            // alt by itself is allowed to fall through
+            if (wParam != VK_MENU && wParam == VK_F4)
+            {
+                result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
+            }
+        }
+        [[fallthrough]];
+        case WM_KEYDOWN:
+        case WM_KEYUP:
+        {
+            bool keyWasDown { ((lParam) & (1 << 30)) != 0 };
+            bool keyIsDown { ((lParam & (1 << 31)) == 0) };
+
+            SysEvent event;
+
+            event.type = keyIsDown ? SysEventType::KEY_PRESS : SysEventType::KEY_RELEASE;
+
+            if (wParam < keyTable.size())
+            {
+                event.key = keyTable[wParam];
+            }
+
+            Input::QueueSysEvent(event);
         }
         break;
         default:

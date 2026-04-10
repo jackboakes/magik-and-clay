@@ -16,11 +16,15 @@ if(WIN32)
 	code/win32/win_main.cpp
 	code/win32/win_core.cpp
 	code/win32/win_core.h
+	code/win32/win_input.cpp
+	code/win32/win_input.h
 	code/common/types.h
 	code/renderer/renderer.cpp
 	code/renderer/renderer.h
 	code/renderer/backend/d3d11_backend.cpp
 	code/renderer/backend/d3d11_backend.h
+	code/input/input.cpp
+	code/input/input.h
 	third_party/HandmadeMath/HandmadeMath.h
 	third_party/stb/stb_image.h)
 	
@@ -28,6 +32,8 @@ if(WIN32)
 		code/win32/win_main.cpp
 		code/win32/win_core.h
 		code/win32/win_core.cpp
+		code/win32/win_input.h
+		code/win32/win_input.cpp
 	)
  
 	source_group("common" FILES
@@ -40,15 +46,21 @@ if(WIN32)
 	)
  
 	source_group("renderer/backend" FILES
-	code/renderer/backend/d3d11_backend.h
-	code/renderer/backend/d3d11_backend.cpp
+		code/renderer/backend/d3d11_backend.h
+		code/renderer/backend/d3d11_backend.cpp
 	)
-	
+
+	source_group("input" FILES
+		code/input/input.h
+		code/input/input.cpp
+		code/win32/win_input.h
+		code/win32/win_input.cpp
+	)
+
 	source_group("third_party" FILES
     third_party/HandmadeMath/HandmadeMath.h
     third_party/stb/stb_image.h
 	)
-
 
 	target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/code"

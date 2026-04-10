@@ -76,7 +76,7 @@ namespace D3D11
     extern Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
     extern Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
     extern Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
-    extern Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> textureSRV;
+    extern std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> textureStorage;
     extern Microsoft::WRL::ComPtr<ID3D11SamplerState> pointSampler;
     extern Microsoft::WRL::ComPtr<ID3D11BlendState> blendState;
 
