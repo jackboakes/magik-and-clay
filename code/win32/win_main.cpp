@@ -2,7 +2,6 @@
 * Create a camera class?
 * Sprite sheet support by adding source to sprite instance
 * win32 specific timer
-* input
 */
 
 #define WIN32_LEAN_AND_MEAN
@@ -11,6 +10,7 @@
 #include "win_core.h"
 #include "renderer/renderer.h"
 #include "input/input.h"
+#include "camera/camera.h"
 
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
@@ -27,6 +27,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     golemDest.width = 32;
     golemDest.x = 64;
     golemDest.y = 64;
+
+    Camera camera;
+    camera.position = { 0.0f, 0.0f };
+    camera.zoom = 1.0f;
 
     while (W32::running)
     {
@@ -57,8 +61,24 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             }
         }
 
+        if (Input::IsKeyDown(Key::W))
+        {
+            camera.position.Y -= 1.0f;
+        }
+        if (Input::IsKeyDown(Key::A))
+        {
+            camera.position.X -= 1.0f;
+        }
+        if (Input::IsKeyDown(Key::S))
+        {
+            camera.position.Y += 1.0f;
+        }
+        if (Input::IsKeyDown(Key::D))
+        {
+            camera.position.X += 1.0f;
+        }
 
-        Renderer::BeginFrame();
+        Renderer::BeginFrame(camera);
 
             for (int i { 0 }; i < 1280; i += 32)
             {
@@ -71,23 +91,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
                     grassDest.y = j;
                     Renderer::DrawSprite(grass, grassDest);
                 }
-            }
-
-            if (Input::IsKeyDown(Key::W))
-            {
-                golemDest.y -= 1;
-            }
-            if (Input::IsKeyDown(Key::A))
-            {
-                golemDest.x -= 1;
-            }
-            if (Input::IsKeyDown(Key::S))
-            {
-                golemDest.y += 1;
-            }
-            if (Input::IsKeyDown(Key::D))
-            {
-                golemDest.x += 1;
             }
 
             Renderer::DrawSprite(golem, golemDest);

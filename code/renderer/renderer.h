@@ -1,11 +1,10 @@
 #pragma once
 
-#include "HandmadeMath.h"
-#include <cstdint>
+#include "common/types.h"
+#include "camera/camera.h"
 
 #include <string_view>
-#include "common/types.h"
-
+#include <cstdint>
 
 // opaque handle for texture
 struct Texture { uint32_t handle; };
@@ -24,7 +23,7 @@ namespace Renderer
 
     void DrawSprite(Texture texture, RectF32 destination);
 
-    void BeginFrame();
+    void BeginFrame(const Camera& camera);
 
     void EndFrame();
 }

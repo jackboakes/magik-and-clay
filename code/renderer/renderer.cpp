@@ -6,7 +6,9 @@
 
 #include <vector>
 
+#include "HandmadeMath.h"
 #include "win32/win_core.h"
+
 
 namespace Renderer
 {
@@ -57,7 +59,7 @@ namespace Renderer
         spriteQueue.push_back(sprite);
     }
 
-    void BeginFrame()
+    void BeginFrame(const Camera& camera)
     {
         spriteQueue.clear();
         D3D11::BeginFrame();
@@ -67,14 +69,8 @@ namespace Renderer
         float aspectRatio = clientRect.width / clientRect.height;
         float virtualWidth = VIRTUAL_HEIGHT * aspectRatio;
 
-        HMM_Mat4 view { HMM_M4D(1.0f) };
-        HMM_Mat4 projection { HMM_Orthographic_RH_ZO(
-            0.0f, virtualWidth,
-            VIRTUAL_HEIGHT, 0.0f,
-            0.0f, 100.0f
-        ) };
 
-        viewProjection = HMM_MulM4(projection, view);
+        viewProjection = ViewProjectionFromCamera(camera, virtualWidth, VIRTUAL_HEIGHT);
     }
 
     void EndFrame()

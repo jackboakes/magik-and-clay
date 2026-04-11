@@ -25,6 +25,8 @@ if(WIN32)
 	code/renderer/backend/d3d11_backend.h
 	code/input/input.cpp
 	code/input/input.h
+	code/camera/camera.cpp
+	code/camera/camera.h
 	third_party/HandmadeMath/HandmadeMath.h
 	third_party/stb/stb_image.h)
 	
@@ -55,6 +57,11 @@ if(WIN32)
 		code/input/input.cpp
 		code/win32/win_input.h
 		code/win32/win_input.cpp
+	)
+
+	source_group("camera" FILES
+		code/camera/camera.h
+		code/camera/camera.cpp
 	)
 
 	source_group("third_party" FILES
