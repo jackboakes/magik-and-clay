@@ -20,6 +20,9 @@ struct Constants
 {
     HMM_Mat4 model;
     HMM_Mat4 viewProjection;
+    HMM_Vec2 sourcePosition;
+    HMM_Vec2 textureSize;
+    HMM_Vec2 spriteSize;
 };
 
 struct Vertex
@@ -62,7 +65,7 @@ namespace D3D11
         Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView> view;
 
-        // TODO:: Change this into a Vec2 lastResolution variable
+        // TODO:: Change this into a int32_t Vec2 lastResolution variable
         UINT lastWidth { 0 };
         UINT lastHeight { 0 };
     };

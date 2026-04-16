@@ -48,7 +48,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     RectF32 golemDest;
     golemDest.height = 32;
-    golemDest.width = 32;
+    golemDest.width = 16;
     golemDest.x = 64;
     golemDest.y = 64;
 
@@ -126,7 +126,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
                 Renderer::DrawSprite(grass, grassDest);
             }
 
-            Renderer::DrawSprite(golem, golemDest);
+            Renderer::DrawSprite(golem, golemDest, { static_cast<float>(golem.width) * 0.5f ,0 , static_cast<float>(golem.width) * 0.5f, static_cast<float>(golem.height)});
             
 
         Renderer::EndFrame();

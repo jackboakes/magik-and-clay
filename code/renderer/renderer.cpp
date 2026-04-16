@@ -60,6 +60,10 @@ namespace Renderer
         SpriteInstance sprite;
         sprite.texture = texture;
         sprite.destination = destination;
+        sprite.source.width = destination.width;
+        sprite.source.height = destination.height;
+        sprite.source.x = 0;
+        sprite.source.y = 0;
         spriteQueue.push_back(sprite);
     }
 

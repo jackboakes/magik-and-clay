@@ -310,6 +310,9 @@ namespace D3D11
                 Constants constants;
                 constants.model = model;
                 constants.viewProjection = viewProjection;
+                constants.sourcePosition = { sprite.source.x, sprite.source.y };
+                constants.textureSize = { (static_cast<float>(sprite.texture.width)),(static_cast<float>(sprite.texture.height)) };
+                constants.spriteSize = { sprite.source.width, sprite.source.height };
 
                 D3D11_MAPPED_SUBRESOURCE constantBufferMSR;
                 context->Map(constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &constantBufferMSR);
