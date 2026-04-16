@@ -85,5 +85,5 @@ namespace D3D11
     void BeginFrame();
     void EndFrame(const std::vector<SpriteInstance>& spriteQueue, HMM_Mat4 viewProjection);
 
-    Texture CreateTexture(unsigned char* textureData, int width, int height);
+    uint32_t CreateTexture(unsigned char* textureData, int width, int height);
 }

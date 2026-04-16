@@ -46,12 +46,24 @@ namespace Renderer
             return Texture{0};
         }
 
-        Texture tex = D3D11::CreateTexture(textureData, width, height);
+        Texture texture;
+        texture.handle = D3D11::CreateTexture(textureData, width, height);
+        texture.width = width;
+        texture.height = height;
+
         stbi_image_free(textureData);
-        return tex;
+        return texture;
     }
 
-    void DrawSprite(Texture texture, const RectF32& destination, const RectF32& source = RectF32 {})
+    void DrawSprite(Texture texture, const RectF32& destination)
+    {
+        SpriteInstance sprite;
+        sprite.texture = texture;
+        sprite.destination = destination;
+        spriteQueue.push_back(sprite);
+    }
+
+    void DrawSprite(Texture texture, const RectF32& destination, const RectF32& source)
     {
         SpriteInstance sprite;
         sprite.texture = texture;

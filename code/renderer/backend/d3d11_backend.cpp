@@ -306,11 +306,11 @@ namespace D3D11
                 HMM_Scale(HMM_V3(sprite.destination.width, sprite.destination.height, 0.0f)))
             };
 
-            Constants constants;
-            constants.model = model;
-            constants.viewProjection = viewProjection;
-
             {
+                Constants constants;
+                constants.model = model;
+                constants.viewProjection = viewProjection;
+
                 D3D11_MAPPED_SUBRESOURCE constantBufferMSR;
                 context->Map(constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &constantBufferMSR);
                 memcpy(constantBufferMSR.pData, &constants, sizeof(Constants));
@@ -327,7 +327,7 @@ namespace D3D11
         window.swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
     }
 
-    Texture CreateTexture(unsigned char* textureData, int width, int height)
+    uint32_t CreateTexture(unsigned char* textureData, int width, int height)
     {
         D3D11_TEXTURE2D_DESC desc{};
         desc.Width = width;
@@ -349,9 +349,9 @@ namespace D3D11
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
         device->CreateShaderResourceView(texture.Get(), nullptr, &srv);
 
-        uint32_t handle = static_cast<uint32_t>(textureStorage.size());
+        uint32_t handle { static_cast<uint32_t>(textureStorage.size()) };
         textureStorage.push_back(srv);
 
-        return Texture{handle};
+        return handle;
     }
 }

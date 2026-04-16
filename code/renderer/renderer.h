@@ -7,7 +7,12 @@
 #include <cstdint>
 
 // opaque handle for texture
-struct Texture { uint32_t handle; };
+struct Texture 
+{ 
+    uint32_t handle;
+    int width;
+    int height;
+};
 
 struct SpriteInstance
 {
@@ -22,7 +27,8 @@ namespace Renderer
 
     Texture LoadTexture(std::string_view path);
 
-    void DrawSprite(Texture texture, const RectF32& destination, const RectF32& source = RectF32 {});
+    void DrawSprite(Texture texture, const RectF32& destination);
+    void DrawSprite(Texture texture, const RectF32& destination, const RectF32& source);
 
     void BeginFrame(const Camera& camera);
 
