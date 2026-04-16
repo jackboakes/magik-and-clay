@@ -209,6 +209,7 @@ namespace D3D11
             swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
             // TODO:: change scaling to none when implementing virtual resolution
             swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
+            swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING | DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
             DXGI_SWAP_CHAIN_FULLSCREEN_DESC swapChainFullscreenDesc {};
             swapChainFullscreenDesc.Windowed = true;
@@ -221,6 +222,8 @@ namespace D3D11
                 0,
                 &window.swapChain
             ) };
+
+            factory->MakeWindowAssociation(handle, 0);
 
             if (swapChainResult != S_OK)
             {
@@ -253,7 +256,7 @@ namespace D3D11
         {
             context->OMSetRenderTargets(0, 0, 0);
             window.view.Reset();
-            window.swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+            window.swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
 
             ID3D11Texture2D* framebuffer = 0;
             window.swapChain->GetBuffer(0, IID_PPV_ARGS(&framebuffer));
@@ -321,7 +324,7 @@ namespace D3D11
         }
 
         // swap buffer
-        window.swapChain->Present(1, 0);
+        window.swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
     }
 
     Texture CreateTexture(unsigned char* textureData, int width, int height)

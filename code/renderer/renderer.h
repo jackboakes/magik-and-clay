@@ -13,6 +13,7 @@ struct SpriteInstance
 {
     Texture texture;
     RectF32 destination;
+    RectF32 source;
 };
 
 namespace Renderer
@@ -21,7 +22,7 @@ namespace Renderer
 
     Texture LoadTexture(std::string_view path);
 
-    void DrawSprite(Texture texture, RectF32 destination);
+    void DrawSprite(Texture texture, const RectF32& destination, const RectF32& source = RectF32 {});
 
     void BeginFrame(const Camera& camera);
 

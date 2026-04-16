@@ -51,11 +51,12 @@ namespace Renderer
         return tex;
     }
 
-    void DrawSprite(Texture texture, RectF32 destination)
+    void DrawSprite(Texture texture, const RectF32& destination, const RectF32& source = RectF32 {})
     {
         SpriteInstance sprite;
         sprite.texture = texture;
         sprite.destination = destination;
+        sprite.source = source;
         spriteQueue.push_back(sprite);
     }
 
@@ -68,7 +69,6 @@ namespace Renderer
 
         float aspectRatio = clientRect.width / clientRect.height;
         float virtualWidth = VIRTUAL_HEIGHT * aspectRatio;
-
 
         viewProjection = ViewProjectionFromCamera(camera, virtualWidth, VIRTUAL_HEIGHT);
     }

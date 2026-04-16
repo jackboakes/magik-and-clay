@@ -8,7 +8,12 @@ HMM_Mat4 ViewProjectionFromCamera(const Camera& camera, float width, float heigh
         0.0f, 100.0f
     ) };
 
-    HMM_Mat4 view { HMM_Translate(HMM_V3(-camera.position.X, -camera.position.Y, 0.0f)) };
+    // - NOTE: The camera origin is the centre
+    HMM_Mat4 view { HMM_Translate(HMM_V3(
+        -camera.position.X + (width / camera.zoom) * 0.5f,
+        -camera.position.Y + (height / camera.zoom) * 0.5f,
+        0.0f
+    )) };
 
     return HMM_MulM4(projection, view);
 }

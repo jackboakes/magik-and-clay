@@ -94,6 +94,7 @@ namespace W32
             Input::QueueSysEvent(event);
         }
         break;
+
         default:
         {
             result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
