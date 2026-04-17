@@ -123,7 +123,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
             for (const auto& grassDest : grassDestinations)
             {
-                Renderer::DrawSprite(grass, grassDest);
+                    Renderer::DrawSprite(grass, grassDest);
             }
 
             Renderer::DrawSprite(golem, golemDest, { static_cast<float>(golem.width) * 0.5f ,0 , static_cast<float>(golem.width) * 0.5f, static_cast<float>(golem.height)});
@@ -131,10 +131,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
         Renderer::EndFrame();
 
-        uint64_t frameTimeMicroseconds { TimeMicroseconds() - startTimeMS };
-        double frameTimeMilliseconds { static_cast<double>(frameTimeMicroseconds) / 1000.0 };
-        std::wstring frameTime { L"Frame time in ms: " + std::to_wstring(frameTimeMilliseconds) + L"\n"};
-        OutputDebugStringW(frameTime.data());
+        //uint64_t frameTimeMicroseconds { TimeMicroseconds() - startTimeMS };
+        //double frameTimeMilliseconds { static_cast<double>(frameTimeMicroseconds) / 1000.0 };
+        //std::wstring frameTime { L"Frame time in ms: " + std::to_wstring(frameTimeMilliseconds) + L"\n"};
+        //OutputDebugStringW(frameTime.data());
     }
 
     return 0;

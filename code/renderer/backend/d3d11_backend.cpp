@@ -5,6 +5,8 @@
 
 #include "win32/win_core.h"
 
+#include <array>
+
 
 namespace D3D11
 {
@@ -22,9 +24,16 @@ namespace D3D11
     Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer> constantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer> instanceBuffer;
     std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> textureStorage;
     Microsoft::WRL::ComPtr<ID3D11SamplerState> pointSampler;
     Microsoft::WRL::ComPtr<ID3D11BlendState> blendState;
+
+
+
+    // TODO:: Not sure on what the best number for this is
+#define MAX_SPRITES 256
+    std::array<InstanceData, MAX_SPRITES> spriteBuffer;
 
     void Init()
     {
@@ -129,14 +138,23 @@ namespace D3D11
 
             if (error.empty())
             {
-                device->CreateVertexShader(vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), 0, &vertexShader);
-                device->CreatePixelShader(pixelShaderCSO->GetBufferPointer(), pixelShaderCSO->GetBufferSize(), 0, &pixelShader);
+                device->CreateVertexShader(vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), nullptr, &vertexShader);
+                device->CreatePixelShader(pixelShaderCSO->GetBufferPointer(), pixelShaderCSO->GetBufferSize(), nullptr, &pixelShader);
 
                 D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
                 {
-                    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,                            D3D11_INPUT_PER_VERTEX_DATA, 0 },
-                    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+                    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,                            D3D11_INPUT_PER_VERTEX_DATA,   0 },
+                    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA,   0 },
+
+                    { "INST_MODEL",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0,                            D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+                    { "INST_MODEL",    1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+                    { "INST_MODEL",    2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+                    { "INST_MODEL",    3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+                    { "INST_SRCPOS",   0, DXGI_FORMAT_R32G32_FLOAT,       1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+                    { "INST_TEXSIZE",  0, DXGI_FORMAT_R32G32_FLOAT,       1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+                    { "INST_SPRSIZE",  0, DXGI_FORMAT_R32G32_FLOAT,       1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
                 };
+
                 device->CreateInputLayout(layoutDesc, ARRAYSIZE(layoutDesc), vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), &inputLayout);
 
                 D3D11_BUFFER_DESC vertexBufferDesc {};
@@ -160,6 +178,17 @@ namespace D3D11
                 device->CreateBuffer(&indexBufferDesc, &indexBufferSRD, &indexBuffer);
             }
         }
+
+        // instance buffer
+        {
+            D3D11_BUFFER_DESC instanceBufferDesc {};
+            instanceBufferDesc.ByteWidth = sizeof(InstanceData) * MAX_SPRITES;
+            instanceBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+            instanceBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+            instanceBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+            device->CreateBuffer(&instanceBufferDesc, nullptr, &instanceBuffer);
+        }
+
         // Constant buffer
         {
             D3D11_BUFFER_DESC constantBufferDesc {};
@@ -282,11 +311,12 @@ namespace D3D11
     void EndFrame(const std::vector<SpriteInstance>& spriteQueue, HMM_Mat4 viewProjection)
     {
         // setup input assembly
-        UINT stride { sizeof(Vertex) };
-        UINT offset { 0 };
+        UINT strides[] = { sizeof(Vertex), sizeof(InstanceData) };
+        UINT offsets[] { 0 , 0 };
+        ID3D11Buffer* buffers[] = { vertexBuffer.Get(), instanceBuffer.Get() };
         D3D11::context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         D3D11::context->IASetInputLayout(D3D11::inputLayout.Get());
-        D3D11::context->IASetVertexBuffers(0, 1, D3D11::vertexBuffer.GetAddressOf(), &stride, &offset);
+        D3D11::context->IASetVertexBuffers(0, 2, buffers, strides, offsets);
         D3D11::context->IASetIndexBuffer(D3D11::indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 
         // setup shaders
@@ -298,32 +328,61 @@ namespace D3D11
 
         D3D11::context->OMSetBlendState(D3D11::blendState.Get(), 0, 0xFFFFFFFF);
 
-        // draw sprites
-        for (const auto& sprite : spriteQueue)
+        // pass viewproj to constant buffer
         {
-            HMM_Mat4 model {
-                HMM_MulM4(HMM_Translate(HMM_V3(sprite.destination.x, sprite.destination.y, 0.0f)),
-                HMM_Scale(HMM_V3(sprite.destination.width, sprite.destination.height, 0.0f)))
-            };
+            Constants constants;
+            constants.viewProjection = viewProjection;
+            D3D11_MAPPED_SUBRESOURCE constantBufferMSR;
+            context->Map(constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &constantBufferMSR);
+            memcpy(constantBufferMSR.pData, &constants, sizeof(Constants));
+            context->Unmap(constantBuffer.Get(), 0);
+        }
 
+        int drawCount = 0;
+
+        // draw sprites
+        size_t i = 0;
+        while (i < spriteQueue.size())
+        {
+            // start of a new batch - record which texture this batch uses
+            uint32_t batchTexture = spriteQueue[i].texture.handle;
+            size_t batchStart = i;
+
+            // fill instance buffer with all sprites sharing this texture
+            size_t instanceCount = 0;
+            while (i < spriteQueue.size() &&
+                spriteQueue[i].texture.handle == batchTexture &&
+                instanceCount < MAX_SPRITES)
             {
-                Constants constants;
-                constants.model = model;
-                constants.viewProjection = viewProjection;
-                constants.sourcePosition = { sprite.source.x, sprite.source.y };
-                constants.textureSize = { (static_cast<float>(sprite.texture.width)),(static_cast<float>(sprite.texture.height)) };
-                constants.spriteSize = { sprite.source.width, sprite.source.height };
+                const auto& sprite { spriteQueue[i] };
 
-                D3D11_MAPPED_SUBRESOURCE constantBufferMSR;
-                context->Map(constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &constantBufferMSR);
-                memcpy(constantBufferMSR.pData, &constants, sizeof(Constants));
-                context->Unmap(constantBuffer.Get(), 0);
+                spriteBuffer[instanceCount].model = HMM_MulM4(
+                    HMM_Translate(HMM_V3(sprite.destination.x, sprite.destination.y, 0.0f)),
+                    HMM_Scale(HMM_V3(sprite.destination.width, sprite.destination.height, 1.0f))
+                );
+                spriteBuffer[instanceCount].sourcePos = { sprite.source.x, sprite.source.y };
+                spriteBuffer[instanceCount].textureSize = { (float)sprite.texture.width, (float)sprite.texture.height };
+                spriteBuffer[instanceCount].spriteSize = { sprite.source.width, sprite.source.height };
+
+                instanceCount++;
+                i++;
             }
 
-            auto& textureSRV { textureStorage[sprite.texture.handle] };
-
+            // upload the whole batch at once
+            D3D11_MAPPED_SUBRESOURCE msr;
+            context->Map(instanceBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+            memcpy(msr.pData, spriteBuffer.data(), sizeof(InstanceData) * instanceCount);
+            context->Unmap(instanceBuffer.Get(), 0);
+            drawCount++;
+            // bind texture and draw the batch
+            auto& textureSRV { textureStorage[batchTexture] };
             context->PSSetShaderResources(0, 1, textureSRV.GetAddressOf());
-            context->DrawIndexed(6, 0, 0);
+            context->DrawIndexedInstanced(6, static_cast<UINT>(instanceCount), 0, 0, 0);
+
+            if (drawCount > 3)
+            {
+
+            }
         }
 
         // swap buffer

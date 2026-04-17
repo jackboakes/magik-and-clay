@@ -13,16 +13,24 @@
 
 #include <vector>
 
-constexpr float g_NearPlane { 0.0f };
-constexpr float g_FarPlane { 100.0f };
+constexpr float g_NearPlane { -1.0f };
+constexpr float g_FarPlane { 1.0f };
+
+struct InstanceData
+{
+    HMM_Mat4 model;
+    HMM_Vec2 sourcePos;
+    HMM_Vec2 textureSize;
+    HMM_Vec2 spriteSize;
+};
 
 struct Constants
 {
-    HMM_Mat4 model;
+    //HMM_Mat4 model;
     HMM_Mat4 viewProjection;
-    HMM_Vec2 sourcePosition;
-    HMM_Vec2 textureSize;
-    HMM_Vec2 spriteSize;
+    //HMM_Vec2 sourcePosition;
+    //HMM_Vec2 textureSize;
+    //HMM_Vec2 spriteSize;
 };
 
 struct Vertex

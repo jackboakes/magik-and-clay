@@ -5,6 +5,7 @@
 #include "stb_image.h"
 
 #include <vector>
+#include <algorithm>
 
 #include "HandmadeMath.h"
 #include "win32/win_core.h"
@@ -91,6 +92,10 @@ namespace Renderer
 
     void EndFrame()
     {
+        std::sort(spriteQueue.begin(), spriteQueue.end(), [](SpriteInstance a, SpriteInstance b)
+            {
+                return a.texture.handle > b.texture.handle;
+            });
         D3D11::EndFrame(spriteQueue, viewProjection);
     }
 

@@ -9,5 +9,10 @@ struct PSInput
 
 float4 PSMain(PSInput input) : SV_TARGET
 {
-    return tex.Sample(pointsampler, input.uv);
+    float4 color = tex.Sample(pointsampler, input.uv);
+    
+    if (color.a == 0)
+        discard;
+    
+    return color;
 }
