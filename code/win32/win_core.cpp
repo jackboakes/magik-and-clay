@@ -95,6 +95,20 @@ namespace W32
         }
         break;
 
+        case WM_MOUSEWHEEL:
+        {
+            SysEvent event;
+
+            event.type = SysEventType::MOUSE_SCROLL;
+            event.key = Key::NONE;
+            event.scroll.X = 0;
+            event.scroll.Y = (float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA;
+            event.position.X = (float)(short)LOWORD(lParam);
+            event.position.Y = (float)(short)HIWORD(lParam);
+            Input::QueueSysEvent(event);
+        }
+        break;
+
         default:
         {
             result = DefWindowProcW(hwnd, uMsg, wParam, lParam);

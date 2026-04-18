@@ -13,7 +13,8 @@ enum class SysEventType
     NONE = 0,
     KEY_PRESS,
     KEY_RELEASE,
-    MOUSE_MOVE
+    MOUSE_MOVE,
+    MOUSE_SCROLL
 };
 
 struct SysEvent
@@ -22,6 +23,7 @@ struct SysEvent
     Key key;
 
     HMM_Vec2 position;
+    HMM_Vec2 scroll;
 };
 
 // TODO:: replace this with a fixed size ring buffer can't have heap alloc in hot path
@@ -30,6 +32,8 @@ inline std::vector<SysEvent> sysEventQueue;
 // push keys from events into here
 inline std::array<bool, static_cast<size_t>(Key::COUNT)> keyStateCurrent {};
 inline std::array<bool, static_cast<size_t>(Key::COUNT)> keyStatePrevious {};
+
+inline float scrollDelta;
 
 namespace Input
 {
@@ -150,6 +154,8 @@ namespace Input
         bool IsKeyDown(Key key);
         bool IsKeyPressed(Key key);
         bool IsKeyReleased(Key key);
+
+        float GetScrollDelta();
 }
 
 

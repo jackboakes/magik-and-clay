@@ -43,12 +43,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     W32::running = true;
 
-    Texture golem { Renderer::LoadTexture("../data/textures/golem.png") };
+    Texture golem { Renderer::LoadTexture("../data/textures/idle_golem.png") };
     Texture grass { Renderer::LoadTexture("../data/textures/grass.png") };
 
     RectF32 golemDest;
     golemDest.height = 32;
-    golemDest.width = 16;
+    golemDest.width = 32;
     golemDest.x = 64;
     golemDest.y = 64;
 
@@ -77,6 +77,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         uint64_t startTimeMS { TimeMicroseconds() };
         keyStatePrevious = keyStateCurrent;
         sysEventQueue.clear();
+        scrollDelta = 0;
 
         MSG message;
         while (PeekMessageW(&message, 0, 0, 0, PM_REMOVE))
@@ -100,6 +101,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             {
                 keyStateCurrent[static_cast<size_t>(event.key)] = false;
             }
+            if (event.type == SysEventType::MOUSE_SCROLL)
+            {
+                scrollDelta += event.scroll.Y;
+            }
         }
 
         if (Input::IsKeyDown(Key::W))
@@ -119,6 +124,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             camera.position.X += 1.0f;
         }
 
+        float scrollWheelDelta { Input::GetScrollDelta() };
+
+        if (scrollWheelDelta != 0.0f)
+        {
+            OutputDebugStringW(std::to_wstring(scrollWheelDelta).data());
+            OutputDebugStringW(L"\n");
+        }
+        
+
+
         Renderer::BeginFrame(camera);
 
             for (const auto& grassDest : grassDestinations)
@@ -126,7 +141,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
                     Renderer::DrawSprite(grass, grassDest);
             }
 
-            Renderer::DrawSprite(golem, golemDest, { static_cast<float>(golem.width) * 0.5f ,0 , static_cast<float>(golem.width) * 0.5f, static_cast<float>(golem.height)});
+            uint64_t currentTimeMS = TimeMicroseconds() / 1000;
+            int frameIndex = (currentTimeMS / 500) % 2;
+            float srcX = frameIndex == 0 ? 2.0f : 20.0f;
+            RectF32 golemSrc = { srcX, 2.0f, 16.0f, static_cast<float>(golem.height) - 4.0f };
+
+            Renderer::DrawSprite(golem, golemDest, golemSrc);
             
 
         Renderer::EndFrame();

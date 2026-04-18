@@ -28,4 +28,9 @@ namespace Input
         return !keyStateCurrent[static_cast<size_t>(key)] &&
             keyStatePrevious[static_cast<size_t>(key)];
     }
+
+    float GetScrollDelta()
+    {
+        return scrollDelta;
+    }
 }
