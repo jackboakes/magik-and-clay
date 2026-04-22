@@ -77,17 +77,11 @@ namespace Renderer
         spriteQueue.push_back(sprite);
     }
 
-    void BeginFrame(const Camera& camera)
+    void BeginFrame(const Camera& camera, float width, float height)
     {
         spriteQueue.clear();
         D3D11::BeginFrame();
-
-        RectF32 clientRect {W32::ClientRectFromWindow(D3D11::window.handle)};
-
-        float aspectRatio = clientRect.width / clientRect.height;
-        float virtualWidth = VIRTUAL_HEIGHT * aspectRatio;
-
-        viewProjection = ViewProjectionFromCamera(camera, virtualWidth, VIRTUAL_HEIGHT);
+        viewProjection = ViewProjectionFromCamera(camera, width, height);
     }
 
     void EndFrame()

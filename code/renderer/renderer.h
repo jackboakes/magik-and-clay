@@ -30,7 +30,7 @@ namespace Renderer
     void DrawSprite(Texture texture, const RectF32& destination);
     void DrawSprite(Texture texture, const RectF32& destination, const RectF32& source);
 
-    void BeginFrame(const Camera& camera);
+    void BeginFrame(const Camera& camera, float width, float height);
 
     void EndFrame();
 }

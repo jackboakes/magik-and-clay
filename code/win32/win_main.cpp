@@ -24,6 +24,8 @@
 #include "input/input.h"
 #include "camera/camera.h"
 
+#include "renderer/backend/d3d11_backend.h"
+
 LARGE_INTEGER frequency;
 
 uint64_t TimeMicroseconds() 
@@ -135,7 +137,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             camera.zoom = std::clamp(camera.zoom, 0.5f, 1.5f);
         }
 
-        Renderer::BeginFrame(camera);
+        // TODO:: abstract over the clientrect from window
+        RectF32 clientRect { W32::ClientRectFromWindow(D3D11::window.handle) };
+        constexpr float virtualHeight { 360.0f };
+        float aspectRatio { clientRect.width / clientRect.height };
+        float virtualWidth { virtualHeight * aspectRatio };
+
+        Renderer::BeginFrame(camera, virtualWidth, virtualHeight);
 
             for (const auto& grassDest : grassDestinations)
             {
