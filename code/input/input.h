@@ -33,10 +33,13 @@ inline std::vector<SysEvent> sysEventQueue;
 inline std::array<bool, static_cast<size_t>(Key::COUNT)> keyStateCurrent {};
 inline std::array<bool, static_cast<size_t>(Key::COUNT)> keyStatePrevious {};
 
-inline float scrollDelta;
+
 
 namespace Input
 {
+    inline float scrollDelta;
+    inline HMM_Vec2 mousePosition;
+
     constexpr std::array<const char*, static_cast<size_t>(Key::COUNT)> keyNames = []()
         {
             std::array<const char*, static_cast<size_t>(Key::COUNT)> r {};
@@ -156,6 +159,7 @@ namespace Input
         bool IsKeyReleased(Key key);
 
         float GetScrollDelta();
+        HMM_Vec2 GetMousePosition();
 }
 
 

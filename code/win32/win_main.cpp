@@ -105,7 +105,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             }
             if (event.type == SysEventType::MOUSE_SCROLL)
             {
-                scrollDelta += event.scroll.Y;
+                Input::scrollDelta += event.scroll.Y;
+            }
+            if (event.type == SysEventType::MOUSE_MOVE)
+            {
+                Input::mousePosition = event.position;
             }
         }
 
@@ -129,13 +133,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         float scrollWheelDelta { Input::GetScrollDelta() };
         if (scrollWheelDelta != 0.0f)
         {
-            OutputDebugStringW(std::to_wstring(scrollWheelDelta).data());
-            OutputDebugStringW(L"\n");
-            camera.zoom += scrollWheelDelta / 10.0f;
             // TODO:: Figure out what amount of camera steps I want and how far each step will be,
             // linear steps should be the best for this type of game.
+            camera.zoom += scrollWheelDelta / 10.0f;
             camera.zoom = std::clamp(camera.zoom, 0.5f, 1.5f);
         }
+        HMM_Vec2 mousePos { Input::GetMousePosition() };
+
+        std::wstring mouseposstring { L"Mouse Position: " + std::to_wstring(mousePos.X) + L"," + std::to_wstring(mousePos.Y) + L"\n"};
+        OutputDebugStringW(mouseposstring.data());
 
         // TODO:: abstract over the clientrect from window
         RectF32 clientRect { W32::ClientRectFromWindow(D3D11::window.handle) };

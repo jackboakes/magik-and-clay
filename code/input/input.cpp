@@ -35,4 +35,9 @@ namespace Input
         scrollDelta = 0.0f;
         return delta;
     }
+
+    HMM_Vec2 GetMousePosition()
+    {
+        return mousePosition;
+    }
 }
