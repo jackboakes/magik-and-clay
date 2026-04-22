@@ -17,6 +17,7 @@
 #include <vector>
 #include <cstdint>
 #include <string>
+#include <algorithm>
 
 #include "win_core.h"
 #include "renderer/renderer.h"
@@ -47,8 +48,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     Texture grass { Renderer::LoadTexture("../data/textures/grass.png") };
 
     RectF32 golemDest;
-    golemDest.height = 32;
-    golemDest.width = 32;
+    golemDest.height = 16;
+    golemDest.width = 16;
     golemDest.x = 64;
     golemDest.y = 64;
 
@@ -59,13 +60,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     std::vector<RectF32> grassDestinations;
 
     
-    for (int i { 0 }; i < 1280; i += 32)
+    for (int i { 0 }; i < 1280; i += 16)
     {
-        for (int j = { 0 }; j < 360; j += 32)
+        for (int j = { 0 }; j < 360; j += 16)
         {
             RectF32 grassDest;
-            grassDest.height = 32;
-            grassDest.width = 32;
+            grassDest.height = 16;
+            grassDest.width = 16;
             grassDest.x = i;
             grassDest.y = j;
             grassDestinations.push_back(grassDest);
@@ -77,7 +78,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         uint64_t startTimeMS { TimeMicroseconds() };
         keyStatePrevious = keyStateCurrent;
         sysEventQueue.clear();
-        scrollDelta = 0;
 
         MSG message;
         while (PeekMessageW(&message, 0, 0, 0, PM_REMOVE))
@@ -125,20 +125,21 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         }
 
         float scrollWheelDelta { Input::GetScrollDelta() };
-
         if (scrollWheelDelta != 0.0f)
         {
             OutputDebugStringW(std::to_wstring(scrollWheelDelta).data());
             OutputDebugStringW(L"\n");
+            camera.zoom += scrollWheelDelta / 10.0f;
+            // TODO:: Figure out what amount of camera steps I want and how far each step will be,
+            // linear steps should be the best for this type of game.
+            camera.zoom = std::clamp(camera.zoom, 0.5f, 1.5f);
         }
-        
-
 
         Renderer::BeginFrame(camera);
 
             for (const auto& grassDest : grassDestinations)
             {
-                    Renderer::DrawSprite(grass, grassDest);
+                Renderer::DrawSprite(grass, grassDest);
             }
 
             uint64_t currentTimeMS = TimeMicroseconds() / 1000;

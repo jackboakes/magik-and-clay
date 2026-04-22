@@ -31,6 +31,8 @@ namespace Input
 
     float GetScrollDelta()
     {
-        return scrollDelta;
+        float delta = scrollDelta;
+        scrollDelta = 0.0f;
+        return delta;
     }
 }
