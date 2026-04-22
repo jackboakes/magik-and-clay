@@ -78,8 +78,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     while (W32::running)
     {
         uint64_t startTimeMS { TimeMicroseconds() };
-        keyStatePrevious = keyStateCurrent;
-        sysEventQueue.clear();
 
         MSG message;
         while (PeekMessageW(&message, 0, 0, 0, PM_REMOVE))
@@ -92,26 +90,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             DispatchMessage(&message);
         }
 
-        for (const auto& event : sysEventQueue)
-        {
-            //TODO:: This is temporary as the user can skip keys if the user presses and releases on the same frame.
-            if (event.type == SysEventType::KEY_PRESS)
-            {
-                keyStateCurrent[static_cast<size_t>(event.key)] = true;
-            }
-            if (event.type == SysEventType::KEY_RELEASE)
-            {
-                keyStateCurrent[static_cast<size_t>(event.key)] = false;
-            }
-            if (event.type == SysEventType::MOUSE_SCROLL)
-            {
-                Input::scrollDelta += event.scroll.Y;
-            }
-            if (event.type == SysEventType::MOUSE_MOVE)
-            {
-                Input::mousePosition = event.position;
-            }
-        }
+        Input::ProcessEvents();
 
         if (Input::IsKeyDown(Key::W))
         {

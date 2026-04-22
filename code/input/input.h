@@ -150,6 +150,7 @@ namespace Input
         }();
 
         void QueueSysEvent(SysEvent sysEvent);
+        void ProcessEvents();
 
         constexpr std::string StringFromKey(Key key);
 
