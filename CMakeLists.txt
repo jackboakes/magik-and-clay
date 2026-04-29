@@ -19,6 +19,8 @@ if(WIN32)
 	code/win32/win_input.cpp
 	code/win32/win_input.h
 	code/common/types.h
+	code/common/utils.cpp
+	code/common/utils.h
 	code/renderer/renderer.cpp
 	code/renderer/renderer.h
 	code/renderer/backend/d3d11_backend.cpp
@@ -41,6 +43,8 @@ if(WIN32)
  
 	source_group("common" FILES
 		code/common/types.h
+		code/common/utils.h
+		code/common/utils.cpp
 	)
  
 	source_group("renderer" FILES
