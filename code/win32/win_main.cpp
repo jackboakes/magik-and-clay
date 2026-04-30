@@ -1,6 +1,5 @@
-/* TODO LIST::
-    - Scroll input
-    - Sprite sheet support by adding source to sprite instance
+/* TODO:: LIST
+    - zoom to mouse pos when scrolling
     - win32 specific timer
     - sprite batching
     - vsync on/off toggle | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
@@ -119,36 +118,60 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         }
         HMM_Vec2 mousePos { Input::GetMousePosition() };
 
-        std::wstring mouseposstring { L"Mouse Position: " + std::to_wstring(mousePos.X) + L"," + std::to_wstring(mousePos.Y) + L"\n"};
-        OutputDebugStringW(mouseposstring.data());
-
         // TODO:: abstract over the clientrect from window
         RectF32 clientRect { W32::ClientRectFromWindow(D3D11::window.handle) };
         constexpr float virtualHeight { 360.0f };
         float aspectRatio { clientRect.width / clientRect.height };
         float virtualWidth { virtualHeight * aspectRatio };
 
-        Renderer::BeginFrame(camera, virtualWidth, virtualHeight);
+        Renderer::BeginFrame(virtualWidth, virtualHeight);
 
-            for (const auto& grassDest : grassDestinations)
-            {
-                Renderer::DrawSprite(grass, grassDest);
-            }
+            Renderer::BeginModeWorldSpace(camera);
 
-            uint64_t currentTimeMS = TimeMicroseconds() / 1000;
-            int frameIndex = (currentTimeMS / 500) % 2;
-            float srcX = frameIndex == 0 ? 2.0f : 20.0f;
-            RectF32 golemSrc = { srcX, 2.0f, 16.0f, static_cast<float>(golem.height) - 4.0f };
+                for (const auto& grassDest : grassDestinations)
+                {
+                    Renderer::DrawSprite(grass, grassDest);
+                }
 
-            Renderer::DrawSprite(golem, golemDest, golemSrc);
-            
+                uint64_t currentTimeMS = TimeMicroseconds() / 1000;
+                int frameIndex = (currentTimeMS / 500) % 2;
+                float srcX = frameIndex == 0 ? 2.0f : 20.0f;
+                RectF32 golemSrc = { srcX, 2.0f, 16.0f, static_cast<float>(golem.height) - 4.0f };
+
+                Renderer::DrawSprite(golem, golemDest, golemSrc);
+
+            Renderer::EndMode();
+
+            Renderer::BeginModeScreenSpace();
+
+                Renderer::DrawSprite(golem, {0,0, 16, 16}, golemSrc);
+
+            Renderer::EndMode();
 
         Renderer::EndFrame();
 
-        //uint64_t frameTimeMicroseconds { TimeMicroseconds() - startTimeMS };
-        //double frameTimeMilliseconds { static_cast<double>(frameTimeMicroseconds) / 1000.0 };
-        //std::wstring frameTime { L"Frame time in ms: " + std::to_wstring(frameTimeMilliseconds) + L"\n"};
-        //OutputDebugStringW(frameTime.data());
+        uint64_t frameTimeMicroseconds { TimeMicroseconds() - startTimeMS };
+        double frameTimeMilliseconds { static_cast<double>(frameTimeMicroseconds) / 1000.0 };
+
+        static double timeAccumulator = 0.0;
+        static int frameCount = 0;
+
+        double frameTimeSeconds = static_cast<double>(frameTimeMicroseconds) / 1'000'000.0;
+
+        timeAccumulator += frameTimeSeconds;
+        frameCount++;
+
+        if (timeAccumulator >= 1.0) // update 4 times per second
+        {
+            double fps = frameCount / timeAccumulator;
+
+            std::wstring title = L"Farming Prototype | FPS: " + std::to_wstring(static_cast<int>(fps));
+            SetWindowTextW(D3D11::window.handle, title.c_str());
+
+            // reset
+            timeAccumulator = 0.0;
+            frameCount = 0;
+        }
     }
 
     return 0;

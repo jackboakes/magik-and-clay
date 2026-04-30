@@ -94,7 +94,8 @@ namespace D3D11
     void Init();
     void WindowEquip(HWND handle);
     void BeginFrame();
-    void EndFrame(const std::vector<SpriteInstance>& spriteQueue, HMM_Mat4 viewProjection);
+    void SubmitFrame(std::vector<RenderPass>& passes);
+    void EndFrame();
 
     uint32_t CreateTexture(unsigned char* textureData, int width, int height);
 }

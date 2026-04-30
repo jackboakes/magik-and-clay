@@ -32,7 +32,7 @@ namespace D3D11
 
 
     // TODO:: Not sure on what the best number for this is
-#define MAX_SPRITES 256
+#define MAX_SPRITES 2048
     std::array<InstanceData, MAX_SPRITES> spriteBuffer;
 
     void Init()
@@ -308,7 +308,7 @@ namespace D3D11
         }
     }
 
-    void EndFrame(const std::vector<SpriteInstance>& spriteQueue, HMM_Mat4 viewProjection)
+    void SubmitFrame(std::vector<RenderPass>& passes)
     {
         // setup input assembly
         UINT strides[] = { sizeof(Vertex), sizeof(InstanceData) };
@@ -328,63 +328,59 @@ namespace D3D11
 
         D3D11::context->OMSetBlendState(D3D11::blendState.Get(), 0, 0xFFFFFFFF);
 
-        // pass viewproj to constant buffer
+        for (RenderPass& pass : passes)
         {
-            Constants constants;
-            constants.viewProjection = viewProjection;
-            D3D11_MAPPED_SUBRESOURCE constantBufferMSR;
-            context->Map(constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &constantBufferMSR);
-            memcpy(constantBufferMSR.pData, &constants, sizeof(Constants));
-            context->Unmap(constantBuffer.Get(), 0);
-        }
-
-        int drawCount = 0;
-
-        // draw sprites
-        size_t i = 0;
-        while (i < spriteQueue.size())
-        {
-            // start of a new batch - record which texture this batch uses
-            uint32_t batchTexture = spriteQueue[i].texture.handle;
-            size_t batchStart = i;
-
-            // fill instance buffer with all sprites sharing this texture
-            size_t instanceCount = 0;
-            while (i < spriteQueue.size() &&
-                spriteQueue[i].texture.handle == batchTexture &&
-                instanceCount < MAX_SPRITES)
+            // pass viewproj to constant buffer
             {
-                const auto& sprite { spriteQueue[i] };
-
-                spriteBuffer[instanceCount].model = HMM_MulM4(
-                    HMM_Translate(HMM_V3(sprite.destination.x, sprite.destination.y, 0.0f)),
-                    HMM_Scale(HMM_V3(sprite.destination.width, sprite.destination.height, 1.0f))
-                );
-                spriteBuffer[instanceCount].sourcePos = { sprite.source.x, sprite.source.y };
-                spriteBuffer[instanceCount].textureSize = { (float)sprite.texture.width, (float)sprite.texture.height };
-                spriteBuffer[instanceCount].spriteSize = { sprite.source.width, sprite.source.height };
-
-                instanceCount++;
-                i++;
+                Constants constants;
+                constants.viewProjection = pass.viewProjection;
+                D3D11_MAPPED_SUBRESOURCE constantBufferMSR;
+                context->Map(constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &constantBufferMSR);
+                memcpy(constantBufferMSR.pData, &constants, sizeof(Constants));
+                context->Unmap(constantBuffer.Get(), 0);
             }
 
-            // upload the whole batch at once
-            D3D11_MAPPED_SUBRESOURCE msr;
-            context->Map(instanceBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
-            memcpy(msr.pData, spriteBuffer.data(), sizeof(InstanceData) * instanceCount);
-            context->Unmap(instanceBuffer.Get(), 0);
-            drawCount++;
-            // bind texture and draw the batch
-            auto& textureSRV { textureStorage[batchTexture] };
-            context->PSSetShaderResources(0, 1, textureSRV.GetAddressOf());
-            context->DrawIndexedInstanced(6, static_cast<UINT>(instanceCount), 0, 0, 0);
-
-            if (drawCount > 3)
+            size_t i { 0 };
+            while (i < pass.sprites.size())
             {
+                uint32_t currentTexture { pass.sprites[i].texture.handle };
+                auto& textureSRV { textureStorage[currentTexture] };
+                context->PSSetShaderResources(0, 1, textureSRV.GetAddressOf());
 
+                while (i < pass.sprites.size() && pass.sprites[i].texture.handle == currentTexture)
+                {
+                    size_t batchCount { 0 };
+
+                    while (batchCount < MAX_SPRITES && i < pass.sprites.size() && pass.sprites[i].texture.handle == currentTexture)
+                    {
+                        const SpriteInstance& sprite { pass.sprites[i] };
+
+                        spriteBuffer[batchCount].model = HMM_MulM4(
+                            HMM_Translate(HMM_V3(sprite.destination.x, sprite.destination.y, 0.0f)),
+                            HMM_Scale(HMM_V3(sprite.destination.width, sprite.destination.height, 1.0f))
+                        );
+                        spriteBuffer[batchCount].sourcePos = { sprite.source.x, sprite.source.y };
+                        spriteBuffer[batchCount].textureSize = { (float)sprite.texture.width, (float)sprite.texture.height };
+                        spriteBuffer[batchCount].spriteSize = { sprite.source.width, sprite.source.height };
+
+                        batchCount++;
+                        i++;
+                    }
+
+                    // upload and draw this set of batches
+                    D3D11_MAPPED_SUBRESOURCE msr;
+                    context->Map(instanceBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+                    memcpy(msr.pData, spriteBuffer.data(), sizeof(InstanceData) * batchCount);
+                    context->Unmap(instanceBuffer.Get(), 0);
+
+                    context->DrawIndexedInstanced(6, static_cast<UINT>(batchCount), 0, 0, 0);
+                }
             }
         }
+    }
 
+    void EndFrame()
+    {
         // swap buffer
         window.swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
     }

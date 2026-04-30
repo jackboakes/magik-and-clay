@@ -5,6 +5,7 @@
 
 #include <string_view>
 #include <cstdint>
+#include <vector>
 
 // opaque handle for texture
 struct Texture 
@@ -21,6 +22,12 @@ struct SpriteInstance
     RectF32 source;
 };
 
+struct RenderPass
+{
+    HMM_Mat4 viewProjection;
+    std::vector<SpriteInstance> sprites;
+};
+
 namespace Renderer
 {
     void WindowCreate(int width, int height, std::wstring_view title);
@@ -30,7 +37,11 @@ namespace Renderer
     void DrawSprite(Texture texture, const RectF32& destination);
     void DrawSprite(Texture texture, const RectF32& destination, const RectF32& source);
 
-    void BeginFrame(const Camera& camera, float width, float height);
+    void BeginFrame(float virtualWidth, float virtualHeight);
+    
+    void BeginModeScreenSpace();
+    void BeginModeWorldSpace(const Camera& camera);
+    void EndMode();
 
     void EndFrame();
 }
