@@ -16,7 +16,6 @@ if(WIN32)
 	code/win32/win_main.cpp
 	code/win32/win_core.cpp
 	code/win32/win_core.h
-	code/win32/win_input.cpp
 	code/win32/win_input.h
 	code/common/types.h
 	code/common/utils.cpp
@@ -40,7 +39,6 @@ if(WIN32)
 		code/win32/win_core.h
 		code/win32/win_core.cpp
 		code/win32/win_input.h
-		code/win32/win_input.cpp
 	)
  
 	source_group("common" FILES
@@ -63,7 +61,6 @@ if(WIN32)
 		code/input/input.h
 		code/input/input.cpp
 		code/win32/win_input.h
-		code/win32/win_input.cpp
 	)
 
 	source_group("camera" FILES
