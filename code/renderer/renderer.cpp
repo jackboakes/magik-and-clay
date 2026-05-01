@@ -1,15 +1,20 @@
 #include "renderer.h"
-#include "renderer/backend/d3d11_backend.h"
+
+#include <algorithm>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include <vector>
-#include <algorithm>
-
+#include "renderer/backend/d3d11_backend.h"
 #include "HandmadeMath.h"
 #include "win32/win_core.h"
+#include "common/utils.h"
 
+#define STB_RECT_PACK_IMPLEMENTATION
+#include "stb_rect_pack.h"
+
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
 
 namespace Renderer
 {
@@ -33,7 +38,6 @@ namespace Renderer
 
         ShowWindow(D3D11::window.handle, SW_SHOW);
     }
-
 
     Texture LoadTexture(std::string_view path)
     {
@@ -83,6 +87,92 @@ namespace Renderer
             s_activePass->sprites.push_back(sprite);
         }
         // TODO:: logging
+    }
+
+    Font LoadFont(std::filesystem::path filePath, float size)
+    {
+        auto fontData { LoadFileBinary(filePath) };
+
+        stbtt_fontinfo fontInfo;
+        stbtt_InitFont(&fontInfo, reinterpret_cast<const unsigned char*>(fontData->data()), 0);
+
+        float scale { stbtt_ScaleForMappingEmToPixels(&fontInfo, size) };
+
+        int ascent, descent, lineGap;
+        stbtt_GetFontVMetrics(&fontInfo, &ascent, &descent, &lineGap);
+
+        std::array<unsigned char, g_fontAtlasWidth* g_fontAtlasHeight> bitmap;
+        std::array<stbtt_packedchar, g_fontCharCount> packedChars {};
+
+        stbtt_pack_context packContext;
+        stbtt_PackBegin(&packContext, bitmap.data(), g_fontAtlasWidth, g_fontAtlasHeight, 0, 0, nullptr);
+
+        stbtt_PackSetOversampling(&packContext, 1, 1);
+        stbtt_PackFontRange(&packContext, reinterpret_cast<const unsigned char*>(fontData->data()), 0, STBTT_POINT_SIZE(size), g_fontFirstChar, g_fontCharCount, packedChars.data());
+
+        stbtt_PackEnd(&packContext);
+
+
+        Font font;
+        font.size = static_cast<int>((ascent - descent) * scale);
+        font.lineHeight = (ascent - descent + lineGap) * scale;
+
+        for (int i { 0 }; i < g_fontCharCount; i++)
+        {
+            stbtt_aligned_quad quad;
+
+            float cx { 0 }, cy { 0 };
+
+            stbtt_GetPackedQuad(packedChars.data(), g_fontAtlasWidth, g_fontAtlasHeight, i, &cx, &cy, &quad, 1);
+            font.glyphs[i].source = { quad.s0 * g_fontAtlasWidth, quad.t0 * g_fontAtlasHeight, (quad.s1 - quad.s0) * g_fontAtlasWidth, (quad.t1 - quad.t0) * g_fontAtlasHeight };
+            font.glyphs[i].offsetX = quad.x0;
+            font.glyphs[i].offsetY = quad.y0 + (ascent * scale);
+            font.glyphs[i].advanceX = packedChars[i].xadvance;
+        }
+
+        // Handover atlas to GPU
+        std::vector<unsigned char> rgba(g_fontAtlasWidth * g_fontAtlasHeight * 4);
+        for (int i = 0; i < g_fontAtlasWidth * g_fontAtlasHeight; i++)
+        {
+            rgba[i * 4 + 0] = 255;
+            rgba[i * 4 + 1] = 255;
+            rgba[i * 4 + 2] = 255;
+            rgba[i * 4 + 3] = bitmap[i];
+        }
+
+        font.atlas.handle = D3D11::CreateTexture(rgba.data(), g_fontAtlasWidth, g_fontAtlasHeight);
+        font.atlas.width = g_fontAtlasWidth;
+        font.atlas.height = g_fontAtlasHeight;
+
+        return font;
+    }
+
+    void DrawText(const Font& font, std::string_view text, float x, float y, int size)
+    {
+        float scale { static_cast<float>(size) / static_cast<float>(font.size) };
+
+        float textOffsetX { x };
+        float textOffsetY { y };
+
+        for (const char ch : text)
+        {
+            if (ch < g_fontFirstChar || ch >= g_fontFirstChar + g_fontCharCount)
+            {
+                continue;
+            }
+
+            const Glyph& glpyh { font.glyphs[ch - g_fontFirstChar] };
+
+            RectF32 dest;
+            dest.x = floorf(textOffsetX + glpyh.offsetX * scale);
+            dest.y = floorf(textOffsetY + glpyh.offsetY * scale);
+            dest.width = floorf(glpyh.source.width * scale);
+            dest.height = floorf(glpyh.source.height * scale);
+
+            Renderer::DrawSprite(font.atlas, dest, glpyh.source);
+
+            textOffsetX += glpyh.advanceX * scale;
+        }
     }
 
     void BeginFrame(float width, float height)

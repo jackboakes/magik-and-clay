@@ -1,13 +1,11 @@
 /* TODO:: LIST
     - zoom to mouse pos when scrolling
     - win32 specific timer
-    - sprite batching
     - vsync on/off toggle | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
     - borderless windowed mode
     - logging system
     - manage d3d11 renderer object lifetimes properly when exiting application
     - sprite animations
-    - text rendering with stb_truetype
 */
 
 #define WIN32_LEAN_AND_MEAN
@@ -40,13 +38,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 {
     Renderer::WindowCreate(1280, 720, L"Farming Sim Prototype");
 
-
+    double fps { 0 };
     QueryPerformanceFrequency(&frequency);
 
     W32::running = true;
 
     Texture golem { Renderer::LoadTexture("../data/textures/idle_golem.png") };
     Texture grass { Renderer::LoadTexture("../data/textures/grass.png") };
+    Font font1 { Renderer::LoadFont("../data/font/romulus.ttf", 16.0f) };
+    Font font2 { Renderer::LoadFont("../data/font/tiny5.ttf", 8.0f) };
 
     RectF32 golemDest;
     golemDest.height = 16;
@@ -144,7 +144,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
             Renderer::BeginModeScreenSpace();
 
-                Renderer::DrawSprite(golem, {0,0, 16, 16}, golemSrc);
+                Renderer::DrawSprite(golem, {0,328, 32, 32}, golemSrc);
+
+                Renderer::DrawText(font1, "FPS: " + std::to_string(static_cast<int>(fps)), 5, 5, font1.size);
+                Renderer::DrawText(font2, " !\"#$ % &\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ", 5, 15, font2.size);
+                Renderer::DrawText(font2, "[]\\^_`abcdefghijklmnopqrstuvwxyz{|}~", 5, 25, font2.size);
 
             Renderer::EndMode();
 
@@ -163,7 +167,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
         if (timeAccumulator >= 1.0) // update 4 times per second
         {
-            double fps = frameCount / timeAccumulator;
+            fps = frameCount / timeAccumulator;
 
             std::wstring title = L"Farming Prototype | FPS: " + std::to_wstring(static_cast<int>(fps));
             SetWindowTextW(D3D11::window.handle, title.c_str());

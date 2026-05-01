@@ -31,7 +31,9 @@ if(WIN32)
 	code/camera/camera.h
 	third_party/HandmadeMath/HandmadeMath.h
 	third_party/stb/stb_image.h
-	third_party/stb/stb_truetype.h)
+	third_party/stb/stb_truetype.h
+	third_party/stb/stb_rect_pack.h
+	)
 	
 	source_group("win32" FILES
 		code/win32/win_main.cpp
@@ -73,6 +75,7 @@ if(WIN32)
     third_party/HandmadeMath/HandmadeMath.h
     third_party/stb/stb_image.h
 	third_party/stb/stb_truetype.h
+	third_party/stb/stb_rect_pack.h
 	)
 
 	target_include_directories(${PROJECT_NAME} PRIVATE

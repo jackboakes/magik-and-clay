@@ -32,7 +32,7 @@ namespace D3D11
 
 
     // TODO:: Not sure on what the best number for this is
-#define MAX_SPRITES 2048
+    constexpr size_t MAX_SPRITES { 2048 };
     std::array<InstanceData, MAX_SPRITES> spriteBuffer;
 
     void Init()
@@ -238,7 +238,7 @@ namespace D3D11
             swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
             // TODO:: change scaling to none when implementing virtual resolution
             swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
-            swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING | DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+            swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
             DXGI_SWAP_CHAIN_FULLSCREEN_DESC swapChainFullscreenDesc {};
             swapChainFullscreenDesc.Windowed = true;
