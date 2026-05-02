@@ -10,6 +10,8 @@
 
 namespace D3D11
 {
+    uint32_t internalDrawCallCount = 0;
+    uint32_t drawCallCount = 0;
     Microsoft::WRL::ComPtr<ID3D11Device> device;
     Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
     Microsoft::WRL::ComPtr<ID3D11Debug> debug;
@@ -269,6 +271,8 @@ namespace D3D11
 
     void BeginFrame()
     {
+        drawCallCount = internalDrawCallCount;
+        internalDrawCallCount = 0;
         RectF32 clientRect { W32::ClientRectFromWindow(window.handle) };
 
         const UINT width { static_cast<UINT>(clientRect.width) };
@@ -374,6 +378,7 @@ namespace D3D11
                     context->Unmap(instanceBuffer.Get(), 0);
 
                     context->DrawIndexedInstanced(6, static_cast<UINT>(batchCount), 0, 0, 0);
+                    internalDrawCallCount++;
                 }
             }
         }

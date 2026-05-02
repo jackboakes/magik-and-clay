@@ -61,7 +61,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     std::vector<RectF32> grassDestinations;
 
     
-    for (int i { 0 }; i < 1280; i += 16)
+    for (int i { 0 }; i < 640; i += 16)
     {
         for (int j = { 0 }; j < 360; j += 16)
         {
@@ -147,8 +147,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
                 Renderer::DrawSprite(golem, {0,328, 32, 32}, golemSrc);
 
                 Renderer::DrawText(font1, "FPS: " + std::to_string(static_cast<int>(fps)), 5, 5, font1.size);
-                Renderer::DrawText(font2, " !\"#$ % &\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ", 5, 15, font2.size);
-                Renderer::DrawText(font2, "[]\\^_`abcdefghijklmnopqrstuvwxyz{|}~", 5, 25, font2.size);
+                Renderer::DrawText(font2, "Sprite Batch Count: " + std::to_string(D3D11::drawCallCount), 5, 15, font2.size);
 
             Renderer::EndMode();
 

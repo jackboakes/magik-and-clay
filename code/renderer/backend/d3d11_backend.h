@@ -59,6 +59,10 @@ constexpr uint16_t indices[] =
 // TODO:: W32_D3D11 globals maybe make the globals a struct like the window?
 namespace D3D11
 {
+
+    extern uint32_t internalDrawCallCount;
+    extern uint32_t drawCallCount;
+
     extern Microsoft::WRL::ComPtr<ID3D11Device> device;
     extern Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
     extern Microsoft::WRL::ComPtr<ID3D11Debug> debug;
