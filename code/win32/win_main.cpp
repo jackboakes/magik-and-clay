@@ -1,5 +1,4 @@
 /* TODO:: LIST
-    - zoom to mouse pos when scrolling
     - win32 specific timer
     - vsync on/off toggle | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
     - borderless windowed mode
@@ -109,22 +108,38 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             camera.position.X += 1.0f;
         }
 
-        float scrollWheelDelta { Input::GetScrollDelta() };
-        if (scrollWheelDelta != 0.0f)
-        {
-            // TODO:: Figure out what amount of camera steps I want and how far each step will be,
-            // linear steps should be the best for this type of game.
-            camera.zoom += scrollWheelDelta / 10.0f;
-            camera.zoom = std::clamp(camera.zoom, 0.5f, 1.5f);
-        }
-        HMM_Vec2 mousePos { Input::GetMousePosition() };
-
         // TODO:: abstract over the clientrect from window
         RectF32 clientRect { W32::ClientRectFromWindow(D3D11::window.handle) };
         constexpr float virtualHeight { 360.0f };
         float aspectRatio { clientRect.width / clientRect.height };
         float virtualWidth { virtualHeight * aspectRatio };
         camera.offset = { virtualWidth * 0.5f, virtualHeight * 0.5f };
+
+        float scrollWheelDelta { Input::GetScrollDelta() };
+        if (scrollWheelDelta != 0.0f)
+        {
+            HMM_Vec2 mousePos { Input::GetMousePosition() };
+
+            // NOTE:: virtual positions are on the game side of the code
+            HMM_Vec2 virtualMousePos;
+            virtualMousePos.X = mousePos.X * (virtualWidth / clientRect.width);
+            virtualMousePos.Y = mousePos.Y * (virtualHeight / clientRect.height );
+
+            HMM_Vec2 previousWorldPos { ScreenToWorld(virtualMousePos, camera) };
+
+            // TODO:: Figure out what amount of camera steps I want and how far each step will be,
+            // linear steps should be the best for this type of game.
+            camera.zoom += scrollWheelDelta / 10.0f;
+            camera.zoom = std::clamp(camera.zoom, 0.5f, 1.5f);
+
+            HMM_Vec2 postZoomWorldPos { ScreenToWorld(virtualMousePos, camera) };
+
+            camera.position.X += (previousWorldPos.X - postZoomWorldPos.X);
+            camera.position.Y += (previousWorldPos.Y - postZoomWorldPos.Y);
+        }
+        
+
+
 
         Renderer::BeginFrame(virtualWidth, virtualHeight);
 
