@@ -66,7 +66,7 @@ namespace Renderer
     Font LoadFont(std::filesystem::path filePath, float size);
     void DrawText(const Font& font, std::string_view text, float x, float y, int size);
 
-    void BeginFrame(float virtualWidth, float virtualHeight);
+    void BeginFrame(float width, float height);
     
     void BeginModeScreenSpace();
     void BeginModeWorldSpace(const Camera& camera);

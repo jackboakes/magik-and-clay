@@ -56,6 +56,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     Camera camera;
     camera.position = { 0.0f, 0.0f };
+    camera.offset = { 640 * 0.5f, 360 * 0.5f };
     camera.zoom = 1.0f;
 
     std::vector<RectF32> grassDestinations;
@@ -123,6 +124,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         constexpr float virtualHeight { 360.0f };
         float aspectRatio { clientRect.width / clientRect.height };
         float virtualWidth { virtualHeight * aspectRatio };
+        camera.offset = { virtualWidth * 0.5f, virtualHeight * 0.5f };
 
         Renderer::BeginFrame(virtualWidth, virtualHeight);
 
