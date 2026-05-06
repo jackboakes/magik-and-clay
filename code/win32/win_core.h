@@ -3,14 +3,23 @@
 #define UNICODE
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <string>
+
+#undef DrawText 
+#undef DrawTextA
+#undef DrawTextW
+#undef DrawTextEx 
+#undef DrawTextExA
+#undef DrawTextExW
+
 #include <string_view>
 #include "common/types.h"
 
 namespace W32
 {
+    // TODO:: handle this somewhere else
     inline bool running;
 
+    static LARGE_INTEGER frequency;
 
     LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     // TODO:: Pass in a rect type?
@@ -18,5 +27,5 @@ namespace W32
 
     RectF32 ClientRectFromWindow(const HWND handle);
 
-    // TODO:: add microsecond timer with QueryPerformanceFrequency and QueryPerformanceCounter
+    uint64_t TimeMicroseconds();
 }

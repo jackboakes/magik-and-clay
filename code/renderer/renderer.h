@@ -53,7 +53,7 @@ struct Font
 };
 
 
-
+#undef DrawText
 namespace Renderer
 {
     void WindowCreate(int width, int height, std::wstring_view title);

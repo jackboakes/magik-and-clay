@@ -297,7 +297,8 @@ namespace D3D11
             framebuffer->Release();
         }
 
-        constexpr float clearColour[] = { 1.0f, 0.0f, 1.0f, 1.0f };
+        // TODO:: let the user change this colour
+        constexpr float clearColour[] = { 0.0f, 0.0f, 0.0f, 1.0f };
         context->ClearRenderTargetView(window.view.Get(), clearColour);
 
         // Update viewport
