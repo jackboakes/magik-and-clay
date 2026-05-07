@@ -22,7 +22,9 @@ namespace Renderer
     static float s_height;
     static std::vector<RenderPass> s_passes;
     static RenderPass* s_activePass { nullptr };
-
+    static uint64_t endCurrentFrameTime { 0 };
+    static uint64_t endPreviousFrameTime { 0 };
+    static int fps { 0 };
 
     void WindowCreate(int width, int height, std::wstring_view title)
     {
@@ -37,6 +39,11 @@ namespace Renderer
         D3D11::WindowEquip(D3D11::window.handle);
 
         ShowWindow(D3D11::window.handle, SW_SHOW);
+    }
+
+    int GetFPS()
+    {
+        return fps;
     }
 
     Texture LoadTexture(std::string_view path)
@@ -218,6 +225,25 @@ namespace Renderer
         D3D11::SubmitFrame(s_passes);
   
         D3D11::EndFrame();
+
+        // capture time for fps
+        endPreviousFrameTime = endCurrentFrameTime;
+        endCurrentFrameTime = W32::TimeMicroseconds();
+
+        uint64_t frameTimeMicroseconds { endCurrentFrameTime - endPreviousFrameTime };
+
+        static int frameCount { 0 };
+        static uint64_t accumulatedTime { 0 };
+
+        accumulatedTime += (endCurrentFrameTime - endPreviousFrameTime);
+        frameCount++;
+
+        if (accumulatedTime >= 500000) // update every 0.5s
+        {
+            fps = static_cast<int>(frameCount * 1000000.0 / accumulatedTime);
+            frameCount = 0;
+            accumulatedTime = 0;
+        }
     }
 
 }

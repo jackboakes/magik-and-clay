@@ -52,11 +52,11 @@ struct Font
     std::array<Glyph, g_fontCharCount> glyphs;
 };
 
-
-#undef DrawText
 namespace Renderer
 {
     void WindowCreate(int width, int height, std::wstring_view title);
+
+    int GetFPS();
 
     Texture LoadTexture(std::string_view path);
 

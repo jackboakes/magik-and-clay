@@ -49,5 +49,5 @@ namespace Game
     void Init();
     void Update();
     void DrawFrame();
-    void Run();
+    void UpdateAndDrawFrame();
 }

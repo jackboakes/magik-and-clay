@@ -88,8 +88,6 @@ namespace Game
 
     void Update()
     {
-        uint64_t startTimeMS { W32::TimeMicroseconds() };
-
         Input::ProcessEvents();
 
 
@@ -191,7 +189,7 @@ namespace Game
 
             Renderer::BeginModeScreenSpace();
 
-                Renderer::DrawText(gameState.font1, "FPS: ", 5, 5, gameState.font1.size);
+                Renderer::DrawText(gameState.font1, "FPS: " + std::to_string(Renderer::GetFPS()), 5, 5, gameState.font1.size);
                 Renderer::DrawText(gameState.font2, "Sprite Batch Count: " + std::to_string(D3D11::drawCallCount), 5, 15, gameState.font2.size);
 
             Renderer::EndMode();
@@ -199,7 +197,7 @@ namespace Game
         Renderer::EndFrame();
     }
 
-    void Run()
+    void UpdateAndDrawFrame()
     {
         // TODO:: cap to 60 FPS/UPS
         Update();

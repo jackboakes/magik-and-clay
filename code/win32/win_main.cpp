@@ -34,7 +34,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             DispatchMessage(&message);
         }
 
-        Game::Run();
+        Game::UpdateAndDrawFrame();
     }
 
     return 0;
