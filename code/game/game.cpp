@@ -62,7 +62,32 @@ namespace Game
     {
         Renderer::WindowCreate(1280, 720, L"Farming Sim Prototype");
 
-        Texture golem { Renderer::LoadTexture("../data/textures/idle_golem.png") };
+
+
+        Entity golem {};
+        golem.texture = Renderer::LoadTexture("../data/textures/golem.png");
+        golem.position = { 0.0f, 0.0f };
+
+
+        SpriteAnimation idle {};
+        idle.currentFrame = 0;
+        idle.frameCount = 2;
+        idle.frameWidth = 16;
+        idle.frameHeight = 16;
+        idle.xOffset = 16;
+        idle.yOffset = 16;
+        SpriteAnimation carrying {};
+        carrying.currentFrame = 0;
+        carrying.frameCount = 2;
+        carrying.frameWidth = 16;
+        carrying.frameHeight = 16;
+        carrying.xOffset = 16;
+        carrying.yOffset = 48;
+
+        golem.animations[static_cast<int>(GolemState::Idle)] = idle;
+        golem.animations[1] = carrying; // carrying animation is tied to bool and not state
+
+        gameState.entities[0] = golem;
         
         g_TileTextures[static_cast<size_t>(TileType::Cauldron)] = Renderer::LoadTexture("../data/textures/cauldron.png");
         g_TileTextures[static_cast<size_t>(TileType::Crop)] = Renderer::LoadTexture("../data/textures/crop.png");
@@ -86,7 +111,7 @@ namespace Game
         gameState.camera.zoom = 1.0f;
     }
 
-    void Update()
+    void Update(float deltaTime)
     {
         Input::ProcessEvents();
 
@@ -139,7 +164,7 @@ namespace Game
         }
     }
 
-    void DrawFrame()
+    void DrawFrame(float deltaTime)
     {
         Renderer::BeginFrame(gameState.virtualScreenWidth, gameState.virtualScreenHeight);
 
@@ -191,16 +216,18 @@ namespace Game
 
                 Renderer::DrawText(gameState.font1, "FPS: " + std::to_string(Renderer::GetFPS()), 5, 5, gameState.font1.size);
                 Renderer::DrawText(gameState.font2, "Sprite Batch Count: " + std::to_string(D3D11::drawCallCount), 5, 15, gameState.font2.size);
+                RectF32 source { gameState.entities[0].position.X, gameState.entities[0].position.Y, gameState.entities[0].texture.width, gameState.entities[0].texture.height };
+                Renderer::DrawSprite(gameState.entities[0].texture, source);
 
             Renderer::EndMode();
 
         Renderer::EndFrame();
     }
 
-    void UpdateAndDrawFrame()
+    void UpdateAndDrawFrame(float deltaTime)
     {
         // TODO:: cap to 60 FPS/UPS
-        Update();
-        DrawFrame();
+        Update(deltaTime);
+        DrawFrame(deltaTime);
     }
 }

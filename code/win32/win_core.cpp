@@ -184,4 +184,12 @@ namespace W32
         double timeInSeconds { static_cast<double>(currentTime.QuadPart) / static_cast<double>(frequency.QuadPart) };
         return static_cast<uint64_t>(timeInSeconds * 1000000.0);
     }
+
+    double TimeSeconds()
+    {
+        LARGE_INTEGER currentTime;
+        QueryPerformanceCounter(&currentTime);
+        double timeInSeconds { static_cast<double>(currentTime.QuadPart) / static_cast<double>(frequency.QuadPart) };
+        return timeInSeconds;
+    }
 }

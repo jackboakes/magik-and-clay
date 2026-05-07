@@ -21,8 +21,22 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     Game::Init();
 
+    double deltaTime { 1.0 / 60.0 };
+    double accumulator { 0.0 };
+
+    double currentTime { W32::TimeSeconds() };
+
     while (W32::running)
     {
+        double newTime { W32::TimeSeconds() };
+        double frameTime { newTime - currentTime };
+        currentTime = newTime;
+        if (frameTime > 0.25)
+        {
+            frameTime = 0.25;
+        } 
+        accumulator += frameTime;
+
         MSG message;
         while (PeekMessageW(&message, 0, 0, 0, PM_REMOVE))
         {
@@ -34,7 +48,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             DispatchMessage(&message);
         }
 
-        Game::UpdateAndDrawFrame();
+        while (accumulator >= deltaTime)
+        {
+            Game::UpdateAndDrawFrame(deltaTime);
+            accumulator -= deltaTime;
+        }
+
     }
 
     return 0;

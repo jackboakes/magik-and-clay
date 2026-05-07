@@ -28,4 +28,5 @@ namespace W32
     RectF32 ClientRectFromWindow(const HWND handle);
 
     uint64_t TimeMicroseconds();
+    double TimeSeconds();
 }
