@@ -67,7 +67,7 @@ namespace Game
         Entity golem {};
         golem.type = EntityType::Golem;
         golem.texture = Renderer::LoadTexture("../data/textures/golem.png");
-        golem.position = { 64.0f, 64.0f };
+        golem.position = { 1280.0f, 750.0f }; // Near the cauldron in the center of the map
 
 
         SpriteAnimation idle {};
@@ -104,7 +104,7 @@ namespace Game
         gameState.font1 = Renderer::LoadFont("../data/font/romulus.ttf", 16.0f);
         gameState.font2 = Renderer::LoadFont("../data/font/tiny5.ttf", 8.0f);
 
-        gameState.camera.position = { 0.0f, 0.0f };
+        gameState.camera.position = { (g_TileMapWidth * g_TileSize) * 0.5f, (g_TileMapHeight * g_TileSize) * 0.5f };
         gameState.camera.offset = { 640 * 0.5f, 360 * 0.5f };
         gameState.camera.zoom = 1.0f;
     }
@@ -136,7 +136,7 @@ namespace Game
         RectF32 clientRect { W32::ClientRectFromWindow(D3D11::window.handle) };
         float aspectRatio { clientRect.width / clientRect.height };
         gameState.virtualScreenWidth =  gameState.virtualScreenHeight * aspectRatio;
-        gameState.camera.offset = { gameState.virtualScreenWidth * 0.5f, gameState.virtualScreenWidth * 0.5f };
+        gameState.camera.offset = { gameState.virtualScreenWidth * 0.5f, gameState.virtualScreenHeight * 0.5f };
 
         float scrollWheelDelta { Input::GetScrollDelta() };
         if (scrollWheelDelta != 0.0f)
@@ -160,6 +160,13 @@ namespace Game
             gameState.camera.position.X += (previousWorldPos.X - postZoomWorldPos.X);
             gameState.camera.position.Y += (previousWorldPos.Y - postZoomWorldPos.Y);
         }
+
+        for (auto& entity : gameState.entities)
+        {
+            if (entity.type != EntityType::Golem) continue;
+            uint64_t frame { (gameState.tick / entity.animations[0].frameAdvancement) % entity.animations[0].frameCount };
+            entity.animations[0].currentFrame = frame;
+        }
     }
 
     void DrawFrame(float deltaTime)
@@ -168,16 +175,14 @@ namespace Game
 
             Renderer::BeginModeWorldSpace(gameState.camera);
 
-                static constexpr float g_MapOffsetX { -(g_TileMapWidth * g_TileSize) * 0.5f };
-                static constexpr float g_MapOffsetY { -(g_TileMapHeight * g_TileSize) * 0.5f };
+                HMM_Vec2 minWorld { ScreenToWorld({ 0, 0 }, gameState.camera) };
+                HMM_Vec2 maxWorld { ScreenToWorld({ gameState.virtualScreenWidth, gameState.virtualScreenHeight }, gameState.camera) };
 
-                HMM_Vec2 minWorld = ScreenToWorld({ 0, 0 }, gameState.camera);
-                HMM_Vec2 maxWorld = ScreenToWorld({ gameState.virtualScreenWidth, gameState.virtualScreenHeight }, gameState.camera);
-
-                int startX = std::clamp(static_cast<int>(floorf((minWorld.X - g_MapOffsetX) / g_TileSize)), 0, g_TileMapWidth);
-                int startY = std::clamp(static_cast<int>(floorf((minWorld.Y - g_MapOffsetY) / g_TileSize)), 0, g_TileMapHeight);
-                int endX = std::clamp(static_cast<int>(ceilf((maxWorld.X - g_MapOffsetX) / g_TileSize)), 0, g_TileMapWidth);
-                int endY = std::clamp(static_cast<int>(ceilf((maxWorld.Y - g_MapOffsetY) / g_TileSize)), 0, g_TileMapHeight);
+                static constexpr float invTileSize { 1.0f / g_TileSize };
+                int startX { std::clamp(static_cast<int>(floorf(minWorld.X * invTileSize)), 0, g_TileMapWidth) };
+                int startY { std::clamp(static_cast<int>(floorf(minWorld.Y * invTileSize)), 0, g_TileMapHeight) };
+                int endX { std::clamp(static_cast<int>(ceilf(maxWorld.X * invTileSize)), 0, g_TileMapWidth) };
+                int endY { std::clamp(static_cast<int>(ceilf(maxWorld.Y * invTileSize)), 0, g_TileMapHeight) };
 
                 for (int y = startY; y < endY; y++)
                 {
@@ -192,18 +197,15 @@ namespace Game
                         if (tile.type == TileType::Cauldron)
                         {
                             // Only draw on the top-left cell of the 2x2 block
-                            // Tiled exports row-major, so the top-left is the smallest x,y
-                            // Check we're at the origin cell (even grid position, or track it explicitly)
-                            // Simple approach: draw if this is the top-left of a 2x2 block
-                            if ((x % 2 == 0) && (y % 2 == 0)) // adjust parity to match your map
+                            if ((x % 2 == 0) && (y % 2 == 0))
                             {
-                                RectF32 dest { g_MapOffsetX + x * g_TileSize, g_MapOffsetY + y * g_TileSize, g_TileSize * 2, g_TileSize * 2 };
+                                RectF32 dest { static_cast<float>(x * g_TileSize), static_cast<float>(y * g_TileSize), g_TileSize * 2, g_TileSize * 2 };
                                 Renderer::DrawSprite(g_TileTextures[static_cast<size_t>(TileType::Cauldron)], dest);
                             }
                             continue;
                         }
 
-                        RectF32 dest { g_MapOffsetX + x * g_TileSize, g_MapOffsetY + y * g_TileSize, g_TileSize, g_TileSize };
+                        RectF32 dest { static_cast<float>(x * g_TileSize), static_cast<float>(y * g_TileSize), g_TileSize, g_TileSize };
                         Renderer::DrawSprite(g_TileTextures[static_cast<size_t>(tile.type)], dest);
                     }
                 }
@@ -211,13 +213,12 @@ namespace Game
                 for (const auto& entity : gameState.entities)
                 {
                     if (entity.type != EntityType::Golem) continue;
-                    uint64_t frame { (gameState.tick / entity.animations[0].frameAdvancement) % entity.animations[0].frameCount };
                     uint32_t height { entity.animations[0].frameHeight };
                     uint32_t width { entity.animations[0].frameWidth };
                     RectF32 source { 0 };
                     source.width = width;
                     source.height = height;
-                    source.x = entity.animations[0].xOffset + (frame * (entity.animations[0].xOffset + width));
+                    source.x = entity.animations[0].xOffset + (entity.animations[0].currentFrame * (entity.animations[0].xOffset + width));
                     source.y = entity.animations[0].yOffset;
                     RectF32 destination { 0 };
                     destination.width = width;
