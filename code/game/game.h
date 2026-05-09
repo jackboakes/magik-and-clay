@@ -67,7 +67,7 @@ struct Entity
     EntityType type;
     Texture texture;
 
-    HMM_Vec2 position;
+    Vec2F32 position;
 
     std::array<SpriteAnimation, 2> animations;
     // TODO:: temp to show animation for now

@@ -28,7 +28,7 @@ namespace Input
                 break;
                 case SysEventType::MOUSE_SCROLL:
                 {
-                    Input::scrollDelta += event.scroll.Y;
+                    Input::scrollDelta += event.scroll.y;
                 }
                 break;
                 case SysEventType::MOUSE_MOVE:
@@ -74,7 +74,7 @@ namespace Input
         return delta;
     }
 
-    HMM_Vec2 GetMousePosition()
+    Vec2F32 GetMousePosition()
     {
         return mousePosition;
     }

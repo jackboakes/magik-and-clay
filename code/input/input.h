@@ -22,8 +22,8 @@ struct SysEvent
     SysEventType type;
     Key key;
 
-    HMM_Vec2 position;
-    HMM_Vec2 scroll;
+    Vec2F32 position;
+    Vec2F32 scroll;
 };
 
 // TODO:: replace this with a fixed size ring buffer can't have heap alloc in hot path
@@ -38,7 +38,7 @@ inline std::array<bool, static_cast<size_t>(Key::COUNT)> keyStatePrevious {};
 namespace Input
 {
     inline float scrollDelta;
-    inline HMM_Vec2 mousePosition;
+    inline Vec2F32 mousePosition;
 
     constexpr std::array<const char*, static_cast<size_t>(Key::COUNT)> keyNames = []()
         {
@@ -160,7 +160,7 @@ namespace Input
         bool IsKeyReleased(Key key);
 
         float GetScrollDelta();
-        HMM_Vec2 GetMousePosition();
+        Vec2F32 GetMousePosition();
 }
 
 

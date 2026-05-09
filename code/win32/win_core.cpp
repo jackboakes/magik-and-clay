@@ -44,8 +44,8 @@ namespace W32
             SysEvent event;
             event.type = mouseIsDown ? SysEventType::KEY_PRESS : SysEventType::KEY_RELEASE;
             event.key = key;
-            event.position.X = (float)(short)LOWORD(lParam);
-            event.position.Y = (float)(short)HIWORD(lParam);
+            event.position.x = (float)(short)LOWORD(lParam);
+            event.position.y = (float)(short)HIWORD(lParam);
 
             Input::QueueSysEvent(event);
         }
@@ -57,8 +57,8 @@ namespace W32
 
             event.type = SysEventType::MOUSE_MOVE;
             event.key = Key::NONE;
-            event.position.X = (float)(short)LOWORD(lParam);
-            event.position.Y = (float)(short)HIWORD(lParam);
+            event.position.x = (float)(short)LOWORD(lParam);
+            event.position.y = (float)(short)HIWORD(lParam);
 
             Input::QueueSysEvent(event);
         }
@@ -101,10 +101,10 @@ namespace W32
 
             event.type = SysEventType::MOUSE_SCROLL;
             event.key = Key::NONE;
-            event.scroll.X = 0;
-            event.scroll.Y = (float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA;
-            event.position.X = (float)(short)LOWORD(lParam);
-            event.position.Y = (float)(short)HIWORD(lParam);
+            event.scroll.x = 0;
+            event.scroll.y = (float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA;
+            event.position.x = (float)(short)LOWORD(lParam);
+            event.position.y = (float)(short)HIWORD(lParam);
             Input::QueueSysEvent(event);
         }
         break;

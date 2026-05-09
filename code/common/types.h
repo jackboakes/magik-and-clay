@@ -1,6 +1,28 @@
 #pragma once
 #include <cstdint>
 
+struct Vec2S32
+{
+    int32_t x;
+    int32_t y;
+
+    Vec2S32 operator+(const Vec2S32& other) const
+    {
+        return { x + other.x, y + other.y };
+    }
+};
+
+struct Vec2F32
+{
+    float x;
+    float y;
+
+    Vec2F32 operator+(const Vec2F32& other) const
+    {
+        return { x + other.x, y + other.y };
+    }
+};
+
 struct RectF32
 {
     float x;

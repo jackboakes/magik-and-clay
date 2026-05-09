@@ -57,7 +57,7 @@ namespace Game
 
         file.close();
     }
-
+    
     void Init()
     {
         Renderer::WindowCreate(1280, 720, L"Farming Sim Prototype");
@@ -116,19 +116,19 @@ namespace Game
 
         if (Input::IsKeyDown(Key::W))
         {
-            gameState.camera.position.Y -= 5.0f;
+            gameState.camera.position.y -= 5.0f;
         }
         if (Input::IsKeyDown(Key::A))
         {
-            gameState.camera.position.X -= 5.0f;
+            gameState.camera.position.x -= 5.0f;
         }
         if (Input::IsKeyDown(Key::S))
         {
-            gameState.camera.position.Y += 5.0f;
+            gameState.camera.position.y += 5.0f;
         }
         if (Input::IsKeyDown(Key::D))
         {
-            gameState.camera.position.X += 5.0f;
+            gameState.camera.position.x += 5.0f;
         }
 
 
@@ -141,24 +141,24 @@ namespace Game
         float scrollWheelDelta { Input::GetScrollDelta() };
         if (scrollWheelDelta != 0.0f)
         {
-            HMM_Vec2 mousePos { Input::GetMousePosition() };
+            Vec2F32 mousePos { Input::GetMousePosition() };
 
             // NOTE:: virtual positions are on the game side of the code
-            HMM_Vec2 virtualMousePos;
-            virtualMousePos.X = mousePos.X * (gameState.virtualScreenWidth / clientRect.width);
-            virtualMousePos.Y = mousePos.Y * (gameState.virtualScreenHeight / clientRect.height);
+            Vec2F32 virtualMousePos;
+            virtualMousePos.x = mousePos.x * (gameState.virtualScreenWidth / clientRect.width);
+            virtualMousePos.y = mousePos.y * (gameState.virtualScreenHeight / clientRect.height);
 
-            HMM_Vec2 previousWorldPos { ScreenToWorld(virtualMousePos, gameState.camera) };
+            Vec2F32 previousWorldPos { ScreenToWorld(virtualMousePos, gameState.camera) };
 
             // TODO:: Figure out what amount of camera steps I want and how far each step will be,
             // linear steps should be the best for this type of game.
             gameState.camera.zoom += scrollWheelDelta / 10.0f;
             gameState.camera.zoom = std::clamp(gameState.camera.zoom, 0.5f, 1.5f);
 
-            HMM_Vec2 postZoomWorldPos { ScreenToWorld(virtualMousePos, gameState.camera) };
+            Vec2F32 postZoomWorldPos { ScreenToWorld(virtualMousePos, gameState.camera) };
 
-            gameState.camera.position.X += (previousWorldPos.X - postZoomWorldPos.X);
-            gameState.camera.position.Y += (previousWorldPos.Y - postZoomWorldPos.Y);
+            gameState.camera.position.x += (previousWorldPos.x - postZoomWorldPos.x);
+            gameState.camera.position.y += (previousWorldPos.y - postZoomWorldPos.y);
         }
 
         for (auto& entity : gameState.entities)
@@ -175,14 +175,14 @@ namespace Game
 
             Renderer::BeginModeWorldSpace(gameState.camera);
 
-                HMM_Vec2 minWorld { ScreenToWorld({ 0, 0 }, gameState.camera) };
-                HMM_Vec2 maxWorld { ScreenToWorld({ gameState.virtualScreenWidth, gameState.virtualScreenHeight }, gameState.camera) };
+                Vec2F32 minWorld { ScreenToWorld({ 0, 0 }, gameState.camera) };
+                Vec2F32 maxWorld { ScreenToWorld({ gameState.virtualScreenWidth, gameState.virtualScreenHeight }, gameState.camera) };
 
                 static constexpr float invTileSize { 1.0f / g_TileSize };
-                int startX { std::clamp(static_cast<int>(floorf(minWorld.X * invTileSize)), 0, g_TileMapWidth) };
-                int startY { std::clamp(static_cast<int>(floorf(minWorld.Y * invTileSize)), 0, g_TileMapHeight) };
-                int endX { std::clamp(static_cast<int>(ceilf(maxWorld.X * invTileSize)), 0, g_TileMapWidth) };
-                int endY { std::clamp(static_cast<int>(ceilf(maxWorld.Y * invTileSize)), 0, g_TileMapHeight) };
+                int startX { std::clamp(static_cast<int>(floorf(minWorld.x * invTileSize)), 0, g_TileMapWidth) };
+                int startY { std::clamp(static_cast<int>(floorf(minWorld.y * invTileSize)), 0, g_TileMapHeight) };
+                int endX { std::clamp(static_cast<int>(ceilf(maxWorld.x * invTileSize)), 0, g_TileMapWidth) };
+                int endY { std::clamp(static_cast<int>(ceilf(maxWorld.y * invTileSize)), 0, g_TileMapHeight) };
 
                 for (int y = startY; y < endY; y++)
                 {
@@ -223,8 +223,8 @@ namespace Game
                     RectF32 destination { 0 };
                     destination.width = width;
                     destination.height = height;
-                    destination.x = entity.position.X;
-                    destination.y = entity.position.Y;
+                    destination.x = entity.position.x;
+                    destination.y = entity.position.y;
 
                     Renderer::DrawSprite(entity.texture, destination, source);
                 }
