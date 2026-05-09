@@ -15,6 +15,14 @@
 
 namespace Game
 {
+    Vec2S32 TileCoordinateFromPoint(Vec2F32 position)
+    {
+        Vec2S32 gridCoordinate;
+        gridCoordinate.x = position.x / g_TileSize;
+        gridCoordinate.y = position.y / g_TileSize;
+        return gridCoordinate;
+    }
+
     // TODO:: Ad-hoc tilemap loading
     void LoadTileMap(std::filesystem::path path)
     {
