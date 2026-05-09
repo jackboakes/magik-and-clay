@@ -40,18 +40,25 @@ enum class GolemState
 
 enum class EntityType
 {
+    None = 0,
     Golem
 };
 
 struct SpriteAnimation
 {
-    uint32_t frameCount;
+    uint32_t frameCount { 1 };
     uint32_t currentFrame;
     uint32_t frameWidth;
     uint32_t frameHeight;
     uint32_t xOffset;
     uint32_t yOffset;
-    // TODO:: add frame tick
+    /*
+    The number of ticks that advance an animations frame.
+    1 means one animation frame per tick, 
+    so at 60 ticks/sec that's 60 animation frames per second.
+    30 means 30 frames before a new animation frame.
+    */ 
+    uint32_t frameAdvancement { 1 };
 };
 
 
@@ -71,6 +78,8 @@ struct GameState
 {
     float virtualScreenWidth;
     const float virtualScreenHeight { 360.f };
+
+    uint64_t tick;
 
     Camera camera;
 

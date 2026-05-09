@@ -65,8 +65,9 @@ namespace Game
 
 
         Entity golem {};
+        golem.type = EntityType::Golem;
         golem.texture = Renderer::LoadTexture("../data/textures/golem.png");
-        golem.position = { 0.0f, 0.0f };
+        golem.position = { 64.0f, 64.0f };
 
 
         SpriteAnimation idle {};
@@ -76,6 +77,7 @@ namespace Game
         idle.frameHeight = 16;
         idle.xOffset = 16;
         idle.yOffset = 16;
+        idle.frameAdvancement = 30;
         SpriteAnimation carrying {};
         carrying.currentFrame = 0;
         carrying.frameCount = 2;
@@ -83,9 +85,11 @@ namespace Game
         carrying.frameHeight = 16;
         carrying.xOffset = 16;
         carrying.yOffset = 48;
+        carrying.frameAdvancement = 2;
 
         golem.animations[static_cast<int>(GolemState::Idle)] = idle;
-        golem.animations[1] = carrying; // carrying animation is tied to bool and not state
+        golem.animations[0] = idle; // carrying animation is tied to bool and not state
+        golem.animations[1] = carrying;
 
         gameState.entities[0] = golem;
         
@@ -100,12 +104,6 @@ namespace Game
         gameState.font1 = Renderer::LoadFont("../data/font/romulus.ttf", 16.0f);
         gameState.font2 = Renderer::LoadFont("../data/font/tiny5.ttf", 8.0f);
 
-        RectF32 golemDest;
-        golemDest.height = 16;
-        golemDest.width = 16;
-        golemDest.x = 64;
-        golemDest.y = 64;
-
         gameState.camera.position = { 0.0f, 0.0f };
         gameState.camera.offset = { 640 * 0.5f, 360 * 0.5f };
         gameState.camera.zoom = 1.0f;
@@ -118,19 +116,19 @@ namespace Game
 
         if (Input::IsKeyDown(Key::W))
         {
-            gameState.camera.position.Y -= 1.0f;
+            gameState.camera.position.Y -= 5.0f;
         }
         if (Input::IsKeyDown(Key::A))
         {
-            gameState.camera.position.X -= 1.0f;
+            gameState.camera.position.X -= 5.0f;
         }
         if (Input::IsKeyDown(Key::S))
         {
-            gameState.camera.position.Y += 1.0f;
+            gameState.camera.position.Y += 5.0f;
         }
         if (Input::IsKeyDown(Key::D))
         {
-            gameState.camera.position.X += 1.0f;
+            gameState.camera.position.X += 5.0f;
         }
 
 
@@ -210,14 +208,32 @@ namespace Game
                     }
                 }
 
+                for (const auto& entity : gameState.entities)
+                {
+                    if (entity.type != EntityType::Golem) continue;
+                    uint64_t frame { (gameState.tick / entity.animations[0].frameAdvancement) % entity.animations[0].frameCount };
+                    uint32_t height { entity.animations[0].frameHeight };
+                    uint32_t width { entity.animations[0].frameWidth };
+                    RectF32 source { 0 };
+                    source.width = width;
+                    source.height = height;
+                    source.x = entity.animations[0].xOffset + (frame * (entity.animations[0].xOffset + width));
+                    source.y = entity.animations[0].yOffset;
+                    RectF32 destination { 0 };
+                    destination.width = width;
+                    destination.height = height;
+                    destination.x = entity.position.X;
+                    destination.y = entity.position.Y;
+
+                    Renderer::DrawSprite(entity.texture, destination, source);
+                }
+
             Renderer::EndMode();
 
             Renderer::BeginModeScreenSpace();
 
                 Renderer::DrawText(gameState.font1, "FPS: " + std::to_string(Renderer::GetFPS()), 5, 5, gameState.font1.size);
                 Renderer::DrawText(gameState.font2, "Sprite Batch Count: " + std::to_string(D3D11::drawCallCount), 5, 15, gameState.font2.size);
-                RectF32 source { gameState.entities[0].position.X, gameState.entities[0].position.Y, gameState.entities[0].texture.width, gameState.entities[0].texture.height };
-                Renderer::DrawSprite(gameState.entities[0].texture, source);
 
             Renderer::EndMode();
 
@@ -226,6 +242,7 @@ namespace Game
 
     void UpdateAndDrawFrame(float deltaTime)
     {
+        gameState.tick++;
         // TODO:: cap to 60 FPS/UPS
         Update(deltaTime);
         DrawFrame(deltaTime);
