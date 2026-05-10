@@ -145,6 +145,13 @@ namespace Renderer
             font.glyphs[i].advanceX = packedChars[i].xadvance;
         }
 
+        // NOTE:: Need to add space manually since it's glyph doesn't have visible pixels for stbtt_PackFontRange atlas
+        int spaceIndex { ' ' - g_fontFirstChar };
+        int advanceWidth;
+        int leftBearing;
+        stbtt_GetCodepointHMetrics(&fontInfo, ' ', &advanceWidth, &leftBearing);
+        font.glyphs[spaceIndex].advanceX = advanceWidth * scale;
+
         // Handover atlas to GPU
         std::vector<unsigned char> rgba(g_fontAtlasWidth * g_fontAtlasHeight * 4);
         for (int i = 0; i < g_fontAtlasWidth * g_fontAtlasHeight; i++)
