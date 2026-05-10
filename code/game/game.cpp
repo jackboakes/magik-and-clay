@@ -15,13 +15,22 @@
 
 namespace Game
 {
-    Vec2S32 TileCoordinateFromPoint(Vec2F32 position)
+    Vec2S32 TileCoordinateFromPoint(Vec2F32 point)
     {
         Vec2S32 gridCoordinate;
-        gridCoordinate.x = position.x / g_TileSize;
-        gridCoordinate.y = position.y / g_TileSize;
+        gridCoordinate.x = static_cast<int32_t>(std::floorf(point.x / g_TileSize));
+        gridCoordinate.y = static_cast<int32_t>(std::floorf(point.y / g_TileSize));
         return gridCoordinate;
     }
+
+    Vec2F32 VirtualPositonFromScreenPoint(Vec2F32 point)
+    {
+        Vec2F32 virtualPosition;
+        RectF32 screenRect { Renderer::GetScreenRect() };
+        virtualPosition.x = point.x * (gameState.virtualScreenWidth / screenRect.width);
+        virtualPosition.y = point.y * (gameState.virtualScreenHeight / screenRect.height);
+        return virtualPosition;
+    }  
 
     // TODO:: Ad-hoc tilemap loading
     void LoadTileMap(std::filesystem::path path)
@@ -140,9 +149,8 @@ namespace Game
         }
 
 
-        // TODO:: abstract over the clientrect from window
-        RectF32 clientRect { W32::ClientRectFromWindow(D3D11::window.handle) };
-        float aspectRatio { clientRect.width / clientRect.height };
+        RectF32 screenRect { Renderer::GetScreenRect() };
+        float aspectRatio { screenRect.width / screenRect.height };
         gameState.virtualScreenWidth =  gameState.virtualScreenHeight * aspectRatio;
         gameState.camera.offset = { gameState.virtualScreenWidth * 0.5f, gameState.virtualScreenHeight * 0.5f };
 
@@ -150,20 +158,16 @@ namespace Game
         if (scrollWheelDelta != 0.0f)
         {
             Vec2F32 mousePos { Input::GetMousePosition() };
+            Vec2F32 virtualMousePos { VirtualPositonFromScreenPoint(mousePos) };
 
-            // NOTE:: virtual positions are on the game side of the code
-            Vec2F32 virtualMousePos;
-            virtualMousePos.x = mousePos.x * (gameState.virtualScreenWidth / clientRect.width);
-            virtualMousePos.y = mousePos.y * (gameState.virtualScreenHeight / clientRect.height);
-
-            Vec2F32 previousWorldPos { ScreenToWorld(virtualMousePos, gameState.camera) };
+            Vec2F32 previousWorldPos { WorldFromScreen(virtualMousePos, gameState.camera) };
 
             // TODO:: Figure out what amount of camera steps I want and how far each step will be,
             // linear steps should be the best for this type of game.
             gameState.camera.zoom += scrollWheelDelta / 10.0f;
             gameState.camera.zoom = std::clamp(gameState.camera.zoom, 0.5f, 1.5f);
 
-            Vec2F32 postZoomWorldPos { ScreenToWorld(virtualMousePos, gameState.camera) };
+            Vec2F32 postZoomWorldPos { WorldFromScreen(virtualMousePos, gameState.camera) };
 
             gameState.camera.position.x += (previousWorldPos.x - postZoomWorldPos.x);
             gameState.camera.position.y += (previousWorldPos.y - postZoomWorldPos.y);
@@ -183,8 +187,8 @@ namespace Game
 
             Renderer::BeginModeWorldSpace(gameState.camera);
 
-                Vec2F32 minWorld { ScreenToWorld({ 0, 0 }, gameState.camera) };
-                Vec2F32 maxWorld { ScreenToWorld({ gameState.virtualScreenWidth, gameState.virtualScreenHeight }, gameState.camera) };
+                Vec2F32 minWorld { WorldFromScreen({ 0, 0 }, gameState.camera) };
+                Vec2F32 maxWorld { WorldFromScreen({ gameState.virtualScreenWidth, gameState.virtualScreenHeight }, gameState.camera) };
 
                 static constexpr float invTileSize { 1.0f / g_TileSize };
                 int startX { std::clamp(static_cast<int>(floorf(minWorld.x * invTileSize)), 0, g_TileMapWidth) };
@@ -242,7 +246,15 @@ namespace Game
             Renderer::BeginModeScreenSpace();
 
                 Renderer::DrawText(gameState.font1, "FPS: " + std::to_string(Renderer::GetFPS()), 5, 5, gameState.font1.size);
-                Renderer::DrawText(gameState.font2, "Sprite Batch Count: " + std::to_string(D3D11::drawCallCount), 5, 15, gameState.font2.size);
+                Renderer::DrawText(gameState.font1, "Sprite Batch Count: " + std::to_string(D3D11::drawCallCount), 5, 15, gameState.font1.size);
+
+                {
+                    Vec2F32 mousePosition { Input::GetMousePosition() };
+                    Vec2F32 virtualMousePosition { VirtualPositonFromScreenPoint(mousePosition) };
+                    Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
+                    Vec2S32 gridPosition { TileCoordinateFromPoint(virtualWorldPosition) };
+                    Renderer::DrawText(gameState.font1, "Mouse Grid Position: " + std::to_string(gridPosition.x) + ", " + std::to_string(gridPosition.y), 5, 25, gameState.font1.size);
+                }
 
             Renderer::EndMode();
 

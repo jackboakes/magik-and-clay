@@ -32,13 +32,13 @@ HMM_Mat4 ViewProjectionFromCamera(const Camera& camera, float width, float heigh
     return HMM_MulM4(projection, ViewFromCamera(camera));
 }
 
-Vec2F32 ScreenToWorld(Vec2F32 position, const Camera& camera)
+Vec2F32 WorldFromScreen(Vec2F32 position, const Camera& camera)
 {
     HMM_Vec4 result { HMM_MulM4V4(InverseViewFromCamera(camera), { position.x, position.y, 0, 1 }) };
     return { result.X, result.Y };
 }
 
-Vec2F32 WorldToScreen(Vec2F32 position, const Camera& camera)
+Vec2F32 ScreenFromWorld(Vec2F32 position, const Camera& camera)
 {
     HMM_Vec4 result { HMM_MulM4V4(ViewFromCamera(camera), { position.x, position.y, 0, 1 }) };
     return { result.X, result.Y };

@@ -58,6 +58,8 @@ namespace Renderer
 
     int GetFPS();
 
+    RectF32 GetScreenRect();
+
     Texture LoadTexture(std::string_view path);
 
     void DrawSprite(Texture texture, const RectF32& destination);

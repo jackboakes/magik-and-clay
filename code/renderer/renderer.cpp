@@ -28,6 +28,9 @@ namespace Renderer
 
     void WindowCreate(int width, int height, std::wstring_view title)
     {
+        s_width = static_cast<float>(width);
+        s_height = static_cast<float>(height);
+
         D3D11::window.handle = W32::WindowCreate(width, height, title);
         if (!D3D11::window.handle)
         {
@@ -44,6 +47,11 @@ namespace Renderer
     int GetFPS()
     {
         return fps;
+    }
+
+    RectF32 GetScreenRect()
+    {
+        return W32::ClientRectFromWindow(D3D11::window.handle);
     }
 
     Texture LoadTexture(std::string_view path)

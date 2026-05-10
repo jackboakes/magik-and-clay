@@ -10,5 +10,5 @@ struct Camera
 };
 
 HMM_Mat4 ViewProjectionFromCamera(const Camera& camera, float width, float height);
-Vec2F32 ScreenToWorld(Vec2F32 position, const Camera& camera);
-Vec2F32 WorldToScreen(Vec2F32 position, const Camera& camera);
+Vec2F32 WorldFromScreen(Vec2F32 position, const Camera& camera);
+Vec2F32 ScreenFromWorld(Vec2F32 position, const Camera& camera);
