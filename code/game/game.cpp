@@ -15,7 +15,7 @@
 
 namespace Game
 {
-    Vec2S32 TileCoordinateFromPoint(Vec2F32 point)
+    Vec2S32 TileCoordinateFromPoint(const Vec2F32 point)
     {
         Vec2S32 gridCoordinate;
         gridCoordinate.x = static_cast<int32_t>(std::floorf(point.x / g_TileSize));
@@ -23,14 +23,20 @@ namespace Game
         return gridCoordinate;
     }
 
-    Vec2F32 VirtualPositonFromScreenPoint(Vec2F32 point)
+    Vec2F32 VirtualPositonFromScreenPoint(const Vec2F32 point)
     {
         Vec2F32 virtualPosition;
         RectF32 screenRect { Renderer::GetScreenRect() };
         virtualPosition.x = point.x * (gameState.virtualScreenWidth / screenRect.width);
         virtualPosition.y = point.y * (gameState.virtualScreenHeight / screenRect.height);
         return virtualPosition;
-    }  
+    }
+
+    bool CheckCollisionPointInRect(Vec2F32 point, const RectF32& rectangle)
+    {
+        return (point.x > rectangle.x && point.x < rectangle.x + rectangle.width
+            && point.y > rectangle.y && point.y < rectangle.y + rectangle.height);
+    }
 
     // TODO:: Ad-hoc tilemap loading
     void LoadTileMap(std::filesystem::path path)
@@ -241,6 +247,8 @@ namespace Game
                     Renderer::DrawSprite(entity.texture, destination, source);
                 }
 
+
+
             Renderer::EndMode();
 
             Renderer::BeginModeScreenSpace();
@@ -254,6 +262,19 @@ namespace Game
                     Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
                     Vec2S32 gridPosition { TileCoordinateFromPoint(virtualWorldPosition) };
                     Renderer::DrawText(gameState.font1, "Mouse Grid Position: " + std::to_string(gridPosition.x) + ", " + std::to_string(gridPosition.y), 5, 25, gameState.font1.size);
+                }
+
+                for (const auto& entity : gameState.entities)
+                {
+                    if (entity.type != EntityType::Golem) continue;
+                    Vec2F32 mousePosition { Input::GetMousePosition() };
+                    Vec2F32 virtualMousePosition { VirtualPositonFromScreenPoint(mousePosition) };
+                    Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
+                    RectF32 entityRect { entity.position.x, entity.position.y, static_cast<float>(entity.animations[0].frameWidth), static_cast<float>(entity.animations[0].frameHeight) };
+                    if (CheckCollisionPointInRect(virtualWorldPosition, entityRect))
+                    {
+                        Renderer::DrawText(gameState.font1, "Hovered", virtualMousePosition.x, virtualMousePosition.y, gameState.font1.size);
+                    }
                 }
 
             Renderer::EndMode();
