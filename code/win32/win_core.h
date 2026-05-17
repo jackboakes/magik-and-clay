@@ -10,6 +10,8 @@
 #undef DrawTextEx 
 #undef DrawTextExA
 #undef DrawTextExW
+#undef min
+#undef max
 
 #include <string_view>
 #include "common/types.h"

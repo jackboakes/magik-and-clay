@@ -21,6 +21,7 @@ enum class TileType
 struct Tile
 {
     TileType type;
+    Vec2S32 position;
 };
 
 static constexpr int g_TileSize { 16 };

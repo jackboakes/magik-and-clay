@@ -4,7 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
-
+#include <queue>
 
 #include "win32/win_core.h" // TODO:: remove this depenedency on win32 layer
 
@@ -79,6 +79,109 @@ namespace Game
         }
 
         file.close();
+    }
+
+    std::vector<Vec2S32> FindPath(Vec2S32 start, Vec2S32 target)
+    {
+        struct Node
+        {
+            int cost;
+            int heuristic;
+            Vec2S32 position;
+
+            bool operator>(const Node& other) const
+            {
+                if (cost == other.cost)
+                {
+                    return heuristic > other.heuristic;
+                }
+                return cost > other.cost;
+            }
+        };
+
+        std::priority_queue<Node, std::vector<Node>, std::greater<Node>> frontier;
+        frontier.push({ 0, 0, {start.x, start.y} });
+
+        bool reached[g_TileMapWidth][g_TileMapHeight] = {};
+        reached[start.x][start.y] = true;
+
+        Tile* cameFrom[g_TileMapWidth][g_TileMapHeight] = {};
+
+        int costSoFar[g_TileMapWidth][g_TileMapHeight] = {};
+        costSoFar[start.x][start.y] = 0;
+
+        auto Heuristic = [](Vec2S32 start, Vec2S32 target)
+            {
+                Vec2S32 delta { std::abs(start.x - target.x), std::abs(start.y - target.y) };
+                return 10 * (delta.x + delta.y) + (-6) * std::min(delta.x, delta.y);
+            };
+
+        while (!frontier.empty())
+        {
+            Node current { frontier.top() };
+            frontier.pop();
+
+            if (current.position.x == target.x &&
+                current.position.y == target.y)
+            {
+                std::vector<Vec2S32> path;
+                Tile* step { &g_TileMap[target.x][target.y] };
+
+                while (step)
+                {
+                    path.push_back(step->position);
+                    step = cameFrom[step->position.x][step->position.y];
+                }
+
+                // std::reverse(path.begin(), path.end());
+                return path;
+            }
+
+            std::vector<Vec2S32> delta { {0, -1}, {1, -1,}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1} };
+
+            for (int i { 0 }; i < 8; i++)
+            {
+                int neighbourX { current.position.x + delta[i].x };
+                int neighbourY { current.position.y + delta[i].y };
+
+                if (neighbourX < 0 || neighbourX >= g_TileMapWidth ||
+                    neighbourY < 0 || neighbourY >= g_TileMapHeight)
+                {
+                    continue;
+                }
+
+                //if (delta[i].x && delta[i].y)
+                //{
+                //    if (g_TileMap[current.position.x + delta[i].x][current.position.y].type == TileType::Obstacle ||
+                //        g_TileMap[current.position.x][current.position.y + delta[i].y].type == TileType::Obstacle)
+                //    {
+                //        continue;
+                //    }
+                //}
+
+                Tile& neighbour { g_TileMap[neighbourX][neighbourY] };
+
+                if (neighbour.type == TileType::Cauldron)
+                {
+                    continue;
+                }
+
+                int moveCost { (delta[i].x && delta[i].y) ? 14 : 10 };
+                int newCost { costSoFar[current.position.x][current.position.y] + moveCost };
+
+                if (!reached[neighbourX][neighbourY] || newCost < costSoFar[neighbourX][neighbourY])
+                {
+                    costSoFar[neighbourX][neighbourY] = newCost;
+                    int heuristic { Heuristic({ neighbourX, neighbourY }, target) };
+                    int cost { newCost + heuristic };
+                    frontier.push({ cost, heuristic, {neighbourX, neighbourY} });
+                    reached[neighbourX][neighbourY] = true;
+                    cameFrom[neighbourX][neighbourY] = &g_TileMap[current.position.x][current.position.y];
+                }
+            }
+        }
+
+        return{};
     }
     
     void Init()
