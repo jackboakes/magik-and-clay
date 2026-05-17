@@ -62,7 +62,6 @@ namespace Game
                 {
                 case -1:                                   break;
                 case 4: tile.type = TileType::Cauldron;    break;
-                case 0: tile.type = TileType::Crop;        break;
                 case 1: tile.type = TileType::Grass_1;     break;
                 case 2: tile.type = TileType::Grass_2;     break;
                 case 3: tile.type = TileType::Grass_3;     break;
@@ -188,7 +187,7 @@ namespace Game
     {
         Renderer::WindowCreate(1280, 720, L"Farming Sim Prototype");
 
-
+        gameState.entities.reserve(256);
 
         Entity golem {};
         golem.type = EntityType::Golem;
@@ -217,10 +216,9 @@ namespace Game
         golem.animations[0] = idle; // carrying animation is tied to bool and not state
         golem.animations[1] = carrying;
 
-        gameState.entities[0] = golem;
+        gameState.entities.push_back(golem);
         
         g_TileTextures[static_cast<size_t>(TileType::Cauldron)] = Renderer::LoadTexture("../data/textures/cauldron.png");
-        g_TileTextures[static_cast<size_t>(TileType::Crop)] = Renderer::LoadTexture("../data/textures/crop.png");
         g_TileTextures[static_cast<size_t>(TileType::Grass_1)] = Renderer::LoadTexture("../data/textures/grass1.png");
         g_TileTextures[static_cast<size_t>(TileType::Grass_2)] = Renderer::LoadTexture("../data/textures/grass2.png");
         g_TileTextures[static_cast<size_t>(TileType::Grass_3)] = Renderer::LoadTexture("../data/textures/grass3.png");
@@ -233,6 +231,39 @@ namespace Game
         gameState.camera.position = { (g_TileMapWidth * g_TileSize) * 0.5f, (g_TileMapHeight * g_TileSize) * 0.5f };
         gameState.camera.offset = { 640 * 0.5f, 360 * 0.5f };
         gameState.camera.zoom = 1.0f;
+
+
+        const std::vector<Vec2S32> daisyLocations {
+            // Left field
+            {67, 45}, {65, 46}, {63, 47}, {65, 47}, {66, 47},
+            {62, 48}, {63, 48}, {65, 48}, {66, 48}, {67, 48},
+            {64, 49}, {65, 49}, {66, 49}, {66, 50}, {69, 50},
+            {62, 52}, {67, 52}, {66, 53},
+            // Right field
+            {96, 41}, {97, 42}, {98, 44}, {99, 44}, {98, 45},
+            {99, 45}, {97, 46}, {98, 46}, {99, 46}, {96, 47},
+            {98, 47}, {99, 47}, {100, 48}, {103, 49}, {101, 50}
+        };
+
+        Texture daisyAtlas { Renderer::LoadTexture("../data/textures/daisy.png") };
+        SpriteAnimation daisyGrowth {};
+        daisyGrowth.currentFrame = 0;
+        daisyGrowth.frameCount = 4;
+        daisyGrowth.frameWidth = 16;
+        daisyGrowth.frameHeight = 16;
+        daisyGrowth.xOffset = 16;
+        daisyGrowth.yOffset = 16;
+
+        for (const Vec2S32& location : daisyLocations)
+        {
+            Entity daisy;
+            daisy.type = EntityType::Crop;
+            daisy.texture = daisyAtlas;
+            daisy.position = { location.x * static_cast<float>(g_TileSize), location.y * static_cast<float>(g_TileSize) };
+            daisy.animations[0] = daisyGrowth;
+            daisy.growthSeconds = 0.0f;
+            gameState.entities.push_back(daisy);
+        }
     }
 
     void Update(float deltaTime)
@@ -288,6 +319,16 @@ namespace Game
             uint64_t frame { (gameState.tick / entity.animations[0].frameAdvancement) % entity.animations[0].frameCount };
             entity.animations[0].currentFrame = frame;
         }
+
+        for (auto& entity : gameState.entities)
+        {
+            if (entity.type != EntityType::Crop) continue;
+            if (entity.growthSeconds >= 20.0f) continue;
+
+            entity.growthSeconds += deltaTime;
+            int stage { static_cast<int>(entity.growthSeconds / 5.0f) };
+            entity.animations[0].currentFrame = std::clamp(stage, 0, 3);
+        }
     }
 
     void DrawFrame(float deltaTime)
@@ -333,14 +374,15 @@ namespace Game
 
                 for (const auto& entity : gameState.entities)
                 {
-                    if (entity.type != EntityType::Golem) continue;
                     uint32_t height { entity.animations[0].frameHeight };
                     uint32_t width { entity.animations[0].frameWidth };
+
                     RectF32 source { 0 };
                     source.width = width;
                     source.height = height;
                     source.x = entity.animations[0].xOffset + (entity.animations[0].currentFrame * (entity.animations[0].xOffset + width));
                     source.y = entity.animations[0].yOffset;
+
                     RectF32 destination { 0 };
                     destination.width = width;
                     destination.height = height;
@@ -349,8 +391,6 @@ namespace Game
 
                     Renderer::DrawSprite(entity.texture, destination, source);
                 }
-
-
 
             Renderer::EndMode();
 
@@ -388,7 +428,7 @@ namespace Game
     void UpdateAndDrawFrame(float deltaTime)
     {
         gameState.tick++;
-        // TODO:: cap to 60 FPS/UPS
+
         Update(deltaTime);
         DrawFrame(deltaTime);
     }

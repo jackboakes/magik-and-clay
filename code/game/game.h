@@ -11,7 +11,6 @@
 enum class TileType
 {
     None = -1,
-    Crop,
     Grass_1,
     Grass_2,
     Grass_3,
@@ -28,7 +27,7 @@ static constexpr int g_TileSize { 16 };
 static constexpr int g_TileMapWidth { 160 };
 static constexpr int g_TileMapHeight { 90 };
 static Tile g_TileMap[g_TileMapWidth][g_TileMapHeight];
-static Texture g_TileTextures[5]; // one per TileType
+static Texture g_TileTextures[4]; // one per TileType
 
 
 enum class GolemState
@@ -42,7 +41,8 @@ enum class GolemState
 enum class EntityType
 {
     None = 0,
-    Golem
+    Golem,
+    Crop
 };
 
 struct SpriteAnimation
@@ -71,8 +71,8 @@ struct Entity
     Vec2F32 position;
 
     std::array<SpriteAnimation, 2> animations;
-    // TODO:: temp to show animation for now
-    bool carryingItem;
+
+    float growthSeconds;
 };
 
 struct GameState
@@ -84,7 +84,7 @@ struct GameState
 
     Camera camera;
 
-    std::array<Entity, 32> entities;
+    std::vector<Entity> entities;
 
     // assets
 
