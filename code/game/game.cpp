@@ -263,7 +263,8 @@ namespace Game
             daisy.texture = daisyAtlas;
             daisy.position = { location.x * static_cast<float>(g_TileSize), location.y * static_cast<float>(g_TileSize) };
             daisy.animations[0] = daisyGrowth;
-            daisy.growthSeconds = 0.0f;
+            daisy.animationTicks = 0;
+            daisy.growthTicks = 0;
             gameState.entities.push_back(daisy);
         }
     }
@@ -356,17 +357,18 @@ namespace Game
         for (auto& entity : gameState.entities)
         {
             if (entity.type != EntityType::Golem) continue;
-            uint64_t frame { (gameState.tick / entity.animations[0].frameAdvancement) % entity.animations[0].frameCount };
-            entity.animations[0].currentFrame = frame;
+            entity.animationTicks++;
+            uint64_t frame { (entity.animationTicks / entity.animations[0].frameAdvancement) % entity.animations[0].frameCount };
+            entity.animations[0].currentFrame = static_cast<uint32_t>(frame);
         }
 
         for (auto& entity : gameState.entities)
         {
             if (entity.type != EntityType::Crop) continue;
-            if (entity.growthSeconds >= 20.0f) continue;
+            if (entity.growthTicks >= 1200) continue;
 
-            entity.growthSeconds += deltaTime;
-            int stage { static_cast<int>(entity.growthSeconds / 5.0f) };
+            entity.growthTicks++;
+            int stage { static_cast<int>(entity.growthTicks / 300) };
             entity.animations[0].currentFrame = std::clamp(stage, 0, 3);
         }
     }

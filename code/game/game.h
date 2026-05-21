@@ -72,7 +72,8 @@ struct Entity
 
     std::array<SpriteAnimation, 2> animations;
 
-    float growthSeconds;
+    uint32_t animationTicks;
+    uint32_t growthTicks;
 };
 
 struct GameState
