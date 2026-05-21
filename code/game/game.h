@@ -90,6 +90,8 @@ struct GameState
 
     Font font1;
     Font font2;
+
+    Texture g_GolemTexture;
 };
 
 static GameState gameState { 0 };

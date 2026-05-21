@@ -189,9 +189,11 @@ namespace Game
 
         gameState.entities.reserve(256);
 
+        gameState.g_GolemTexture = Renderer::LoadTexture("../data/textures/golem.png");
+
         Entity golem {};
         golem.type = EntityType::Golem;
-        golem.texture = Renderer::LoadTexture("../data/textures/golem.png");
+        golem.texture = gameState.g_GolemTexture;
         golem.position = { 1280.0f, 750.0f }; // Near the cauldron in the center of the map
 
 
@@ -286,6 +288,44 @@ namespace Game
         if (Input::IsKeyDown(Key::D))
         {
             gameState.camera.position.x += 5.0f;
+        }
+
+        if (Input::IsKeyPressed(Key::G))
+        {
+            Vec2F32 mousePosition { Input::GetMousePosition() };
+            Vec2F32 virtualMousePosition { VirtualPositonFromScreenPoint(mousePosition) };
+            Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
+            Vec2S32 gridPosition { TileCoordinateFromPoint(virtualWorldPosition) };
+            
+            if (g_TileMap[gridPosition.x][gridPosition.y].type != TileType::Cauldron)
+            {
+                Entity golem {};
+                golem.type = EntityType::Golem;
+                golem.texture = gameState.g_GolemTexture;
+                golem.position = { static_cast<float>(gridPosition.x) * g_TileSize, static_cast<float>(gridPosition.y) * g_TileSize };
+                SpriteAnimation idle {};
+                idle.currentFrame = 0;
+                idle.frameCount = 2;
+                idle.frameWidth = 16;
+                idle.frameHeight = 16;
+                idle.xOffset = 16;
+                idle.yOffset = 16;
+                idle.frameAdvancement = 30;
+                SpriteAnimation carrying {};
+                carrying.currentFrame = 0;
+                carrying.frameCount = 2;
+                carrying.frameWidth = 16;
+                carrying.frameHeight = 16;
+                carrying.xOffset = 16;
+                carrying.yOffset = 48;
+                carrying.frameAdvancement = 2;
+
+                golem.animations[static_cast<int>(GolemState::Idle)] = idle;
+                golem.animations[0] = idle; // carrying animation is tied to bool and not state
+                golem.animations[1] = carrying;
+
+                gameState.entities.push_back(golem);
+            }
         }
 
 
