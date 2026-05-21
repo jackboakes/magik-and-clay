@@ -298,7 +298,7 @@ namespace Game
             Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
             Vec2S32 gridPosition { TileCoordinateFromPoint(virtualWorldPosition) };
             
-            if (g_TileMap[gridPosition.x][gridPosition.y].type != TileType::Cauldron)
+            if (g_TileMap[gridPosition.x][gridPosition.y].type != TileType::Cauldron && gridPosition.x >= 0 && gridPosition.x <= g_TileMapWidth && gridPosition.y >= 0 && gridPosition.y <= g_TileMapHeight)
             {
                 Entity golem {};
                 golem.type = EntityType::Golem;
