@@ -38,6 +38,24 @@ namespace Game
             && point.y > rectangle.y && point.y < rectangle.y + rectangle.height);
     }
 
+    bool CheckCollidableFromTile(const Vec2S32 position)
+    {
+        for (const auto& entity : gameState.entities)
+        {
+            if (!entity.collidable) continue;
+
+            Vec2S32 entityTile { TileCoordinateFromPoint(entity.position) };
+
+
+            if (position.x >= entityTile.x && position.x < entityTile.x + entity.collisionWidth &&
+                position.y >= entityTile.y && position.y < entityTile.y + entity.collisionHeight)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // TODO:: Ad-hoc tilemap loading
     void LoadTileMap(std::filesystem::path path)
     {
@@ -61,7 +79,6 @@ namespace Game
                 switch (std::stoi(token))
                 {
                 case -1:                                   break;
-                case 4: tile.type = TileType::Cauldron;    break;
                 case 1: tile.type = TileType::Grass_1;     break;
                 case 2: tile.type = TileType::Grass_2;     break;
                 case 3: tile.type = TileType::Grass_3;     break;
@@ -158,9 +175,7 @@ namespace Game
                 //    }
                 //}
 
-                Tile& neighbour { g_TileMap[neighbourX][neighbourY] };
-
-                if (neighbour.type == TileType::Cauldron)
+                if (CheckCollidableFromTile({ neighbourX, neighbourY }))
                 {
                     continue;
                 }
@@ -220,10 +235,30 @@ namespace Game
 
         gameState.entities.push_back(golem);
         
-        g_TileTextures[static_cast<size_t>(TileType::Cauldron)] = Renderer::LoadTexture("../data/textures/cauldron.png");
+        Texture cauldronTexture { Renderer::LoadTexture("../data/textures/cauldron.png") };
         g_TileTextures[static_cast<size_t>(TileType::Grass_1)] = Renderer::LoadTexture("../data/textures/grass1.png");
         g_TileTextures[static_cast<size_t>(TileType::Grass_2)] = Renderer::LoadTexture("../data/textures/grass2.png");
         g_TileTextures[static_cast<size_t>(TileType::Grass_3)] = Renderer::LoadTexture("../data/textures/grass3.png");
+
+        Entity cauldron {};
+        cauldron.type = EntityType::Cauldron;
+        cauldron.texture = cauldronTexture;
+        cauldron.position = { 80.0f * g_TileSize, 44.0f * g_TileSize };
+        cauldron.collidable = true;
+        cauldron.collisionWidth = 2;
+        cauldron.collisionHeight = 2;
+
+        SpriteAnimation cauldronAnimation {};
+        cauldronAnimation.currentFrame = 0;
+        cauldronAnimation.frameCount = 7;
+        cauldronAnimation.frameWidth = 32;
+        cauldronAnimation.frameHeight = 32;
+        cauldronAnimation.xOffset = 16;
+        cauldronAnimation.yOffset = 16;
+        cauldronAnimation.frameAdvancement = 8;
+
+        cauldron.animations[0] = cauldronAnimation;
+        gameState.entities.push_back(cauldron);
 
         LoadTileMap("../data/tilemap/tilemap1.csv");
 
@@ -298,7 +333,7 @@ namespace Game
             Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
             Vec2S32 gridPosition { TileCoordinateFromPoint(virtualWorldPosition) };
             
-            if (g_TileMap[gridPosition.x][gridPosition.y].type != TileType::Cauldron && gridPosition.x >= 0 && gridPosition.x <= g_TileMapWidth && gridPosition.y >= 0 && gridPosition.y <= g_TileMapHeight)
+            if (gridPosition.x >= 0 && gridPosition.x < g_TileMapWidth && gridPosition.y >= 0 && gridPosition.y < g_TileMapHeight && !CheckCollidableFromTile(gridPosition))
             {
                 Entity golem {};
                 golem.type = EntityType::Golem;
@@ -364,6 +399,14 @@ namespace Game
 
         for (auto& entity : gameState.entities)
         {
+            if (entity.type != EntityType::Cauldron) continue;
+            entity.animationTicks++;
+            uint64_t frame { (entity.animationTicks / entity.animations[0].frameAdvancement) % entity.animations[0].frameCount };
+            entity.animations[0].currentFrame = static_cast<uint32_t>(frame);
+        }
+
+        for (auto& entity : gameState.entities)
+        {
             if (entity.type != EntityType::Crop) continue;
             if (entity.growthTicks >= 1200) continue;
 
@@ -397,18 +440,6 @@ namespace Game
                         {
                             continue;
                         }
-
-                        if (tile.type == TileType::Cauldron)
-                        {
-                            // Only draw on the top-left cell of the 2x2 block
-                            if ((x % 2 == 0) && (y % 2 == 0))
-                            {
-                                RectF32 dest { static_cast<float>(x * g_TileSize), static_cast<float>(y * g_TileSize), g_TileSize * 2, g_TileSize * 2 };
-                                Renderer::DrawSprite(g_TileTextures[static_cast<size_t>(TileType::Cauldron)], dest);
-                            }
-                            continue;
-                        }
-
                         RectF32 dest { static_cast<float>(x * g_TileSize), static_cast<float>(y * g_TileSize), g_TileSize, g_TileSize };
                         Renderer::DrawSprite(g_TileTextures[static_cast<size_t>(tile.type)], dest);
                     }

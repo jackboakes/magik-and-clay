@@ -13,8 +13,7 @@ enum class TileType
     None = -1,
     Grass_1,
     Grass_2,
-    Grass_3,
-    Cauldron
+    Grass_3
 };
 
 struct Tile
@@ -42,7 +41,8 @@ enum class EntityType
 {
     None = 0,
     Golem,
-    Crop
+    Crop,
+    Cauldron
 };
 
 struct SpriteAnimation
@@ -74,6 +74,10 @@ struct Entity
 
     uint32_t animationTicks;
     uint32_t growthTicks;
+
+    bool collidable { false };
+    uint32_t collisionWidth { 1 };  // width in tiles
+    uint32_t collisionHeight { 1 }; // height in tiles
 };
 
 struct GameState
