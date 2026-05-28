@@ -69,15 +69,24 @@ struct Entity
     Texture texture;
 
     Vec2F32 position;
+    Vec2F32 targetPosition;
+    float speed; 
+    GolemState golemState { GolemState::Idle };
+
 
     std::array<SpriteAnimation, 2> animations;
 
     uint32_t animationTicks;
     uint32_t growthTicks;
+    bool harestable { false };
 
     bool collidable { false };
     uint32_t collisionWidth { 1 };  // width in tiles
     uint32_t collisionHeight { 1 }; // height in tiles
+
+    bool cropTaken { false };
+
+    std::vector<Vec2S32> path;
 };
 
 struct GameState

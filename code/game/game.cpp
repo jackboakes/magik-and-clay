@@ -121,7 +121,7 @@ namespace Game
         bool reached[g_TileMapWidth][g_TileMapHeight] = {};
         reached[start.x][start.y] = true;
 
-        Tile* cameFrom[g_TileMapWidth][g_TileMapHeight] = {};
+        Vec2S32 cameFrom[g_TileMapWidth][g_TileMapHeight] = {};
 
         int costSoFar[g_TileMapWidth][g_TileMapHeight] = {};
         costSoFar[start.x][start.y] = 0;
@@ -141,15 +141,15 @@ namespace Game
                 current.position.y == target.y)
             {
                 std::vector<Vec2S32> path;
-                Tile* step { &g_TileMap[target.x][target.y] };
+                Vec2S32 step { target };
 
-                while (step)
+                while (!(step.x == start.x && step.y == start.y))
                 {
-                    path.push_back(step->position);
-                    step = cameFrom[step->position.x][step->position.y];
-                }
+                    path.push_back(step);
+                    step = cameFrom[step.x][step.y];
 
-                // std::reverse(path.begin(), path.end());
+                    if (!reached[step.x][step.y]) break;
+                }
                 return path;
             }
 
@@ -166,15 +166,6 @@ namespace Game
                     continue;
                 }
 
-                //if (delta[i].x && delta[i].y)
-                //{
-                //    if (g_TileMap[current.position.x + delta[i].x][current.position.y].type == TileType::Obstacle ||
-                //        g_TileMap[current.position.x][current.position.y + delta[i].y].type == TileType::Obstacle)
-                //    {
-                //        continue;
-                //    }
-                //}
-
                 if (CheckCollidableFromTile({ neighbourX, neighbourY }))
                 {
                     continue;
@@ -190,7 +181,7 @@ namespace Game
                     int cost { newCost + heuristic };
                     frontier.push({ cost, heuristic, {neighbourX, neighbourY} });
                     reached[neighbourX][neighbourY] = true;
-                    cameFrom[neighbourX][neighbourY] = &g_TileMap[current.position.x][current.position.y];
+                    cameFrom[neighbourX][neighbourY] = current.position;
                 }
             }
         }
@@ -210,7 +201,8 @@ namespace Game
         golem.type = EntityType::Golem;
         golem.texture = gameState.g_GolemTexture;
         golem.position = { 1280.0f, 750.0f }; // Near the cauldron in the center of the map
-
+        golem.targetPosition = golem.position;
+        golem.speed = 3.0f;
 
         SpriteAnimation idle {};
         idle.currentFrame = 0;
@@ -339,6 +331,8 @@ namespace Game
                 golem.type = EntityType::Golem;
                 golem.texture = gameState.g_GolemTexture;
                 golem.position = { static_cast<float>(gridPosition.x) * g_TileSize, static_cast<float>(gridPosition.y) * g_TileSize };
+                golem.targetPosition = golem.position;
+                golem.speed = 3.0f;
                 SpriteAnimation idle {};
                 idle.currentFrame = 0;
                 idle.frameCount = 2;
@@ -413,6 +407,55 @@ namespace Game
             entity.growthTicks++;
             int stage { static_cast<int>(entity.growthTicks / 300) };
             entity.animations[0].currentFrame = std::clamp(stage, 0, 3);
+            if (stage >= 3)
+            {
+                entity.harestable = true;
+            }
+        }
+
+        for (auto& crop : gameState.entities)
+        {
+            if (crop.type != EntityType::Crop) continue;
+            if (!crop.harestable) continue;
+            if (crop.cropTaken) continue;
+
+            for (auto& golem : gameState.entities)
+            {
+                if (golem.type != EntityType::Golem) continue;
+                if (golem.golemState != GolemState::Idle) continue;
+                if (!golem.path.empty()) continue; 
+
+                crop.cropTaken = true;
+                golem.path = FindPath(TileCoordinateFromPoint(golem.position), TileCoordinateFromPoint(crop.position));
+                golem.golemState = GolemState::Pathing;
+                break;
+            }
+        }
+
+        for (auto& entity : gameState.entities)
+        {
+            if (entity.type != EntityType::Golem) continue;
+            if (entity.path.empty()) continue;
+            
+            Vec2S32 nextTile { entity.path.back() };
+            Vec2F32 targetPosition { static_cast<float>(nextTile.x) * g_TileSize, static_cast<float>(nextTile.y) * g_TileSize };
+
+            float speed { entity.speed * g_TileSize };
+            float step { speed * deltaTime };
+
+            Vec2F32 delta { targetPosition - entity.position };
+            float distance { std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+
+            if (distance <= step)
+            {
+                entity.position = targetPosition;
+                entity.path.pop_back();
+            }
+            else
+            {
+                entity.position.x += (delta.x / distance) * step;
+                entity.position.y += (delta.y / distance) * step;
+            }
         }
     }
 

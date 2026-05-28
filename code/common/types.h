@@ -10,6 +10,11 @@ struct Vec2S32
     {
         return { x + other.x, y + other.y };
     }
+
+    Vec2S32 operator-(const Vec2S32& other) const
+    {
+        return { x - other.x, y - other.y };
+    }
 };
 
 struct Vec2F32
@@ -20,6 +25,11 @@ struct Vec2F32
     Vec2F32 operator+(const Vec2F32& other) const
     {
         return { x + other.x, y + other.y };
+    }
+
+    Vec2F32 operator-(const Vec2F32& other) const
+    {
+        return { x - other.x, y - other.y };
     }
 };
 
