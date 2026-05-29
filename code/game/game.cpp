@@ -214,6 +214,8 @@ namespace Game
 
         gameState.entities.reserve(256);
 
+        gameState.g_InteractableTexture = Renderer::LoadTexture("../data/textures/interactable.png");
+
         Texture cauldronTexture { Renderer::LoadTexture("../data/textures/cauldron.png") };
 
 
@@ -547,27 +549,31 @@ namespace Game
                     Renderer::DrawText(gameState.font1, "Mouse Grid Position: " + std::to_string(gridPosition.x) + ", " + std::to_string(gridPosition.y), 5, 25, gameState.font1.size);
                 }
 
-                for (const auto& entity : gameState.entities)
+                // Debug hover text
                 {
-                    if (entity.type != EntityType::Golem) continue;
-    
                     Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
                     Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
-                    RectF32 entityRect { entity.position.x, entity.position.y, static_cast<float>(entity.animations[0].frameWidth), static_cast<float>(entity.animations[0].frameHeight) };
-                    if (CheckCollisionPointInRect(virtualWorldPosition, entityRect))
-                    {
-                        Renderer::DrawText(gameState.font1, "Hovered", virtualMousePosition.x, virtualMousePosition.y, gameState.font1.size);
-                    }
+                    Entity* entity { EntityFromWorldPosition(virtualWorldPosition) };
 
-                    if (gameState.activeEntity)
+                    if (entity && entity->type == EntityType::Golem)
                     {
-                        Vec2F32 activeEntityScreenPosition { ScreenFromWorld(gameState.activeEntity->position, gameState.camera) };
-                        float activeEntityScreenWidth { gameState.activeEntity->animations[0].frameWidth * gameState.camera.zoom };
-                        
-                        Vec2F32 textScreenPosition { activeEntityScreenPosition.x - 10.0f, activeEntityScreenPosition.y - 12.0f };
-
-                        Renderer::DrawText(gameState.font1, "Active", textScreenPosition.x, textScreenPosition.y, gameState.font1.size);
+                        RectF32 entityRect { entity->position.x, entity->position.y, static_cast<float>(entity->animations[0].frameWidth), static_cast<float>(entity->animations[0].frameHeight) };
+                        if (CheckCollisionPointInRect(virtualWorldPosition, entityRect))
+                        {
+                            Renderer::DrawText(gameState.font1, "Hovered", virtualMousePosition.x, virtualMousePosition.y, gameState.font1.size);
+                        }
                     }
+                }
+
+                if (gameState.activeEntity)
+                {
+                    Vec2F32 activeEntityScreenPosition { ScreenFromWorld(gameState.activeEntity->position, gameState.camera) };
+                    RectF32 dest;
+                    dest.width = gameState.g_InteractableTexture.width;
+                    dest.height = gameState.g_InteractableTexture.height;
+                    dest.x = activeEntityScreenPosition.x;
+                    dest.y = activeEntityScreenPosition.y;
+                    Renderer::DrawSprite(gameState.g_InteractableTexture, dest);
                 }
 
             Renderer::EndMode();

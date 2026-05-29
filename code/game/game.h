@@ -106,6 +106,7 @@ struct GameState
     Font font2;
 
     Texture g_GolemTexture;
+    Texture g_InteractableTexture;
 };
 
 static GameState gameState { 0 };
