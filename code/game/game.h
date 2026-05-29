@@ -73,7 +73,6 @@ struct Entity
     float speed; 
     GolemState golemState { GolemState::Idle };
 
-
     std::array<SpriteAnimation, 2> animations;
 
     uint32_t animationTicks;
@@ -99,6 +98,7 @@ struct GameState
     Camera camera;
 
     std::vector<Entity> entities;
+    Entity* activeEntity;
 
     // assets
 

@@ -195,42 +195,8 @@ namespace Game
 
         gameState.entities.reserve(256);
 
-        gameState.g_GolemTexture = Renderer::LoadTexture("../data/textures/golem.png");
-
-        Entity golem {};
-        golem.type = EntityType::Golem;
-        golem.texture = gameState.g_GolemTexture;
-        golem.position = { 1280.0f, 750.0f }; // Near the cauldron in the center of the map
-        golem.targetPosition = golem.position;
-        golem.speed = 3.0f;
-
-        SpriteAnimation idle {};
-        idle.currentFrame = 0;
-        idle.frameCount = 2;
-        idle.frameWidth = 16;
-        idle.frameHeight = 16;
-        idle.xOffset = 16;
-        idle.yOffset = 16;
-        idle.frameAdvancement = 30;
-        SpriteAnimation carrying {};
-        carrying.currentFrame = 0;
-        carrying.frameCount = 2;
-        carrying.frameWidth = 16;
-        carrying.frameHeight = 16;
-        carrying.xOffset = 16;
-        carrying.yOffset = 48;
-        carrying.frameAdvancement = 2;
-
-        golem.animations[static_cast<int>(GolemState::Idle)] = idle;
-        golem.animations[0] = idle; // carrying animation is tied to bool and not state
-        golem.animations[1] = carrying;
-
-        gameState.entities.push_back(golem);
-        
         Texture cauldronTexture { Renderer::LoadTexture("../data/textures/cauldron.png") };
-        g_TileTextures[static_cast<size_t>(TileType::Grass_1)] = Renderer::LoadTexture("../data/textures/grass1.png");
-        g_TileTextures[static_cast<size_t>(TileType::Grass_2)] = Renderer::LoadTexture("../data/textures/grass2.png");
-        g_TileTextures[static_cast<size_t>(TileType::Grass_3)] = Renderer::LoadTexture("../data/textures/grass3.png");
+
 
         Entity cauldron {};
         cauldron.type = EntityType::Cauldron;
@@ -251,6 +217,42 @@ namespace Game
 
         cauldron.animations[0] = cauldronAnimation;
         gameState.entities.push_back(cauldron);
+
+        gameState.g_GolemTexture = Renderer::LoadTexture("../data/textures/golem.png");
+
+        Entity golem {};
+        golem.type = EntityType::Golem;
+        golem.texture = gameState.g_GolemTexture;
+        golem.position = { 80.0f * g_TileSize, 47.0f * g_TileSize }; // Near the cauldron in the center of the map
+        golem.targetPosition = golem.position;
+        golem.speed = 3.0f;
+
+        SpriteAnimation idle {};
+        idle.currentFrame = 0;
+        idle.frameCount = 2;
+        idle.frameWidth = 16;
+        idle.frameHeight = 16;
+        idle.xOffset = 16;
+        idle.yOffset = 16;
+        idle.frameAdvancement = 30;
+        SpriteAnimation carrying {};
+        carrying.currentFrame = 0;
+        carrying.frameCount = 2;
+        carrying.frameWidth = 16;
+        carrying.frameHeight = 16;
+        carrying.xOffset = 16;
+        carrying.yOffset = 48;
+        carrying.frameAdvancement = 30;
+
+        golem.animations[static_cast<int>(GolemState::Idle)] = idle;
+        golem.animations[0] = idle; // carrying animation is tied to bool and not state
+        golem.animations[1] = carrying;
+
+        gameState.entities.push_back(golem);
+
+        g_TileTextures[static_cast<size_t>(TileType::Grass_1)] = Renderer::LoadTexture("../data/textures/grass1.png");
+        g_TileTextures[static_cast<size_t>(TileType::Grass_2)] = Renderer::LoadTexture("../data/textures/grass2.png");
+        g_TileTextures[static_cast<size_t>(TileType::Grass_3)] = Renderer::LoadTexture("../data/textures/grass3.png");
 
         LoadTileMap("../data/tilemap/tilemap1.csv");
 
@@ -303,19 +305,19 @@ namespace Game
 
         if (Input::IsKeyDown(Key::W))
         {
-            gameState.camera.position.y -= 5.0f;
+            gameState.camera.position.y -= 5.0f / gameState.camera.zoom;
         }
         if (Input::IsKeyDown(Key::A))
         {
-            gameState.camera.position.x -= 5.0f;
+            gameState.camera.position.x -= 5.0f / gameState.camera.zoom;
         }
         if (Input::IsKeyDown(Key::S))
         {
-            gameState.camera.position.y += 5.0f;
+            gameState.camera.position.y += 5.0f / gameState.camera.zoom;
         }
         if (Input::IsKeyDown(Key::D))
         {
-            gameState.camera.position.x += 5.0f;
+            gameState.camera.position.x += 5.0f / gameState.camera.zoom;
         }
 
         if (Input::IsKeyPressed(Key::G))
@@ -348,7 +350,7 @@ namespace Game
                 carrying.frameHeight = 16;
                 carrying.xOffset = 16;
                 carrying.yOffset = 48;
-                carrying.frameAdvancement = 2;
+                carrying.frameAdvancement = 30;
 
                 golem.animations[static_cast<int>(GolemState::Idle)] = idle;
                 golem.animations[0] = idle; // carrying animation is tied to bool and not state
@@ -413,22 +415,30 @@ namespace Game
             }
         }
 
-        for (auto& crop : gameState.entities)
+        for (auto& entity : gameState.entities)
         {
-            if (crop.type != EntityType::Crop) continue;
-            if (!crop.harestable) continue;
-            if (crop.cropTaken) continue;
-
-            for (auto& golem : gameState.entities)
+            if (entity.type != EntityType::Golem) continue;
+            Vec2F32 mousePosition { Input::GetMousePosition() };
+            Vec2F32 virtualMousePosition { VirtualPositonFromScreenPoint(mousePosition) };
+            Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
+            RectF32 entityRect { entity.position.x, entity.position.y, static_cast<float>(entity.animations[0].frameWidth), static_cast<float>(entity.animations[0].frameHeight) };
+            if (CheckCollisionPointInRect(virtualWorldPosition, entityRect))
             {
-                if (golem.type != EntityType::Golem) continue;
-                if (golem.golemState != GolemState::Idle) continue;
-                if (!golem.path.empty()) continue; 
+                if (Input::IsKeyPressed(Key::MOUSE_LEFT))
+                {
+                    gameState.activeEntity = &entity;
+                }
+            }
+        }
 
-                crop.cropTaken = true;
-                golem.path = FindPath(TileCoordinateFromPoint(golem.position), TileCoordinateFromPoint(crop.position));
-                golem.golemState = GolemState::Pathing;
-                break;
+        if (gameState.activeEntity && gameState.activeEntity->type == EntityType::Golem)
+        {
+            if (Input::IsKeyPressed(Key::MOUSE_LEFT))
+            {
+                Vec2F32 mousePosition { Input::GetMousePosition() };
+                Vec2F32 virtualMousePosition { VirtualPositonFromScreenPoint(mousePosition) };
+                Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
+                gameState.activeEntity->path = FindPath(TileCoordinateFromPoint(gameState.activeEntity->position), TileCoordinateFromPoint(virtualWorldPosition));
             }
         }
 
@@ -533,6 +543,12 @@ namespace Game
                     if (CheckCollisionPointInRect(virtualWorldPosition, entityRect))
                     {
                         Renderer::DrawText(gameState.font1, "Hovered", virtualMousePosition.x, virtualMousePosition.y, gameState.font1.size);
+                    }
+
+                    if (gameState.activeEntity)
+                    {
+                        Vec2F32 virtualScreenPosition { ScreenFromWorld({gameState.activeEntity->position.x - g_TileSize / 2, gameState.activeEntity->position.y - g_TileSize} ,gameState.camera)};
+                        Renderer::DrawText(gameState.font1, "Active", virtualScreenPosition.x, virtualScreenPosition.y, gameState.font1.size);
                     }
                 }
 
