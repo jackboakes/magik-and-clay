@@ -38,6 +38,25 @@ namespace Game
             && point.y > rectangle.y && point.y < rectangle.y + rectangle.height);
     }
 
+    Vec2F32 GetMouseVirtualPositon()
+    {
+        return VirtualPositonFromScreenPoint(Input::GetMousePosition());
+    }
+
+    Entity* EntityFromWorldPosition(const Vec2F32 position)
+    {
+        for (auto& entity : gameState.entities)
+        {
+            RectF32 entityRect { entity.position.x, entity.position.y, static_cast<float>(entity.animations[0].frameWidth), static_cast<float>(entity.animations[0].frameHeight) };
+            if (CheckCollisionPointInRect(position, entityRect))
+            {
+                return &entity;
+            }
+        }
+
+        return nullptr;
+    }
+
     bool CheckCollidableFromTile(const Vec2S32 position)
     {
         for (const auto& entity : gameState.entities)
@@ -322,8 +341,7 @@ namespace Game
 
         if (Input::IsKeyPressed(Key::G))
         {
-            Vec2F32 mousePosition { Input::GetMousePosition() };
-            Vec2F32 virtualMousePosition { VirtualPositonFromScreenPoint(mousePosition) };
+            Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
             Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
             Vec2S32 gridPosition { TileCoordinateFromPoint(virtualWorldPosition) };
             
@@ -369,20 +387,19 @@ namespace Game
         float scrollWheelDelta { Input::GetScrollDelta() };
         if (scrollWheelDelta != 0.0f)
         {
-            Vec2F32 mousePos { Input::GetMousePosition() };
-            Vec2F32 virtualMousePos { VirtualPositonFromScreenPoint(mousePos) };
+            Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
 
-            Vec2F32 previousWorldPos { WorldFromScreen(virtualMousePos, gameState.camera) };
+            Vec2F32 previousWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
 
             // TODO:: Figure out what amount of camera steps I want and how far each step will be,
             // linear steps should be the best for this type of game.
             gameState.camera.zoom += scrollWheelDelta / 10.0f;
             gameState.camera.zoom = std::clamp(gameState.camera.zoom, 0.5f, 1.5f);
 
-            Vec2F32 postZoomWorldPos { WorldFromScreen(virtualMousePos, gameState.camera) };
+            Vec2F32 postZoomWorldPos { WorldFromScreen(virtualMousePosition, gameState.camera) };
 
-            gameState.camera.position.x += (previousWorldPos.x - postZoomWorldPos.x);
-            gameState.camera.position.y += (previousWorldPos.y - postZoomWorldPos.y);
+            gameState.camera.position.x += (previousWorldPosition.x - postZoomWorldPos.x);
+            gameState.camera.position.y += (previousWorldPosition.y - postZoomWorldPos.y);
         }
 
         for (auto& entity : gameState.entities)
@@ -415,33 +432,31 @@ namespace Game
             }
         }
 
-        for (auto& entity : gameState.entities)
+        // Pick the entity
+        if (Input::IsKeyPressed(Key::MOUSE_LEFT))
         {
-            if (entity.type != EntityType::Golem) continue;
-            Vec2F32 mousePosition { Input::GetMousePosition() };
-            Vec2F32 virtualMousePosition { VirtualPositonFromScreenPoint(mousePosition) };
+            Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
             Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
-            RectF32 entityRect { entity.position.x, entity.position.y, static_cast<float>(entity.animations[0].frameWidth), static_cast<float>(entity.animations[0].frameHeight) };
-            if (CheckCollisionPointInRect(virtualWorldPosition, entityRect))
+
+            Entity* entity { EntityFromWorldPosition(virtualWorldPosition) };
+            if (entity && entity->type == EntityType::Golem)
             {
-                if (Input::IsKeyPressed(Key::MOUSE_LEFT))
-                {
-                    gameState.activeEntity = &entity;
-                }
+                gameState.activeEntity = entity;
             }
         }
 
+        // Click to move the picked entity and provide it with a path
         if (gameState.activeEntity && gameState.activeEntity->type == EntityType::Golem)
         {
             if (Input::IsKeyPressed(Key::MOUSE_LEFT))
             {
-                Vec2F32 mousePosition { Input::GetMousePosition() };
-                Vec2F32 virtualMousePosition { VirtualPositonFromScreenPoint(mousePosition) };
+                Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
                 Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
                 gameState.activeEntity->path = FindPath(TileCoordinateFromPoint(gameState.activeEntity->position), TileCoordinateFromPoint(virtualWorldPosition));
             }
         }
 
+        // Update the entities path
         for (auto& entity : gameState.entities)
         {
             if (entity.type != EntityType::Golem) continue;
@@ -526,8 +541,7 @@ namespace Game
                 Renderer::DrawText(gameState.font1, "Sprite Batch Count: " + std::to_string(D3D11::drawCallCount), 5, 15, gameState.font1.size);
 
                 {
-                    Vec2F32 mousePosition { Input::GetMousePosition() };
-                    Vec2F32 virtualMousePosition { VirtualPositonFromScreenPoint(mousePosition) };
+                    Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
                     Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
                     Vec2S32 gridPosition { TileCoordinateFromPoint(virtualWorldPosition) };
                     Renderer::DrawText(gameState.font1, "Mouse Grid Position: " + std::to_string(gridPosition.x) + ", " + std::to_string(gridPosition.y), 5, 25, gameState.font1.size);
@@ -536,8 +550,8 @@ namespace Game
                 for (const auto& entity : gameState.entities)
                 {
                     if (entity.type != EntityType::Golem) continue;
-                    Vec2F32 mousePosition { Input::GetMousePosition() };
-                    Vec2F32 virtualMousePosition { VirtualPositonFromScreenPoint(mousePosition) };
+    
+                    Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
                     Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
                     RectF32 entityRect { entity.position.x, entity.position.y, static_cast<float>(entity.animations[0].frameWidth), static_cast<float>(entity.animations[0].frameHeight) };
                     if (CheckCollisionPointInRect(virtualWorldPosition, entityRect))
@@ -547,8 +561,12 @@ namespace Game
 
                     if (gameState.activeEntity)
                     {
-                        Vec2F32 virtualScreenPosition { ScreenFromWorld({gameState.activeEntity->position.x - g_TileSize / 2, gameState.activeEntity->position.y - g_TileSize} ,gameState.camera)};
-                        Renderer::DrawText(gameState.font1, "Active", virtualScreenPosition.x, virtualScreenPosition.y, gameState.font1.size);
+                        Vec2F32 activeEntityScreenPosition { ScreenFromWorld(gameState.activeEntity->position, gameState.camera) };
+                        float activeEntityScreenWidth { gameState.activeEntity->animations[0].frameWidth * gameState.camera.zoom };
+                        
+                        Vec2F32 textScreenPosition { activeEntityScreenPosition.x - 10.0f, activeEntityScreenPosition.y - 12.0f };
+
+                        Renderer::DrawText(gameState.font1, "Active", textScreenPosition.x, textScreenPosition.y, gameState.font1.size);
                     }
                 }
 
