@@ -380,6 +380,11 @@ namespace Game
             }
         }
 
+        if (Input::IsKeyPressed(Key::ESCAPE))
+        {
+            gameState.activeEntity = nullptr;
+        }
+
 
         RectF32 screenRect { Renderer::GetScreenRect() };
         float aspectRatio { screenRect.width / screenRect.height };
@@ -434,6 +439,17 @@ namespace Game
             }
         }
 
+        // Click to move the picked entity and provide it with a path
+        if (gameState.activeEntity && gameState.activeEntity->type == EntityType::Golem)
+        {
+            if (Input::IsKeyPressed(Key::MOUSE_LEFT))
+            {
+                Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
+                Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
+                gameState.activeEntity->path = FindPath(TileCoordinateFromPoint(gameState.activeEntity->position), TileCoordinateFromPoint(virtualWorldPosition));
+            }
+        }
+
         // Pick the entity
         if (Input::IsKeyPressed(Key::MOUSE_LEFT))
         {
@@ -444,17 +460,6 @@ namespace Game
             if (entity && entity->type == EntityType::Golem)
             {
                 gameState.activeEntity = entity;
-            }
-        }
-
-        // Click to move the picked entity and provide it with a path
-        if (gameState.activeEntity && gameState.activeEntity->type == EntityType::Golem)
-        {
-            if (Input::IsKeyPressed(Key::MOUSE_LEFT))
-            {
-                Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
-                Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
-                gameState.activeEntity->path = FindPath(TileCoordinateFromPoint(gameState.activeEntity->position), TileCoordinateFromPoint(virtualWorldPosition));
             }
         }
 
