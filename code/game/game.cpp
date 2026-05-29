@@ -540,6 +540,16 @@ namespace Game
                     Renderer::DrawSprite(entity.texture, destination, source);
                 }
 
+                if (gameState.activeEntity)
+                {
+                    RectF32 dest;
+                    dest.width = gameState.g_InteractableTexture.width;
+                    dest.height = gameState.g_InteractableTexture.height;
+                    dest.x = gameState.activeEntity->position.x;
+                    dest.y = gameState.activeEntity->position.y;
+                    Renderer::DrawSprite(gameState.g_InteractableTexture, dest);
+                }
+
             Renderer::EndMode();
 
             Renderer::BeginModeScreenSpace();
@@ -568,17 +578,6 @@ namespace Game
                             Renderer::DrawText(gameState.font1, "Hovered", virtualMousePosition.x, virtualMousePosition.y, gameState.font1.size);
                         }
                     }
-                }
-
-                if (gameState.activeEntity)
-                {
-                    Vec2F32 activeEntityScreenPosition { ScreenFromWorld(gameState.activeEntity->position, gameState.camera) };
-                    RectF32 dest;
-                    dest.width = gameState.g_InteractableTexture.width;
-                    dest.height = gameState.g_InteractableTexture.height;
-                    dest.x = activeEntityScreenPosition.x;
-                    dest.y = activeEntityScreenPosition.y;
-                    Renderer::DrawSprite(gameState.g_InteractableTexture, dest);
                 }
 
             Renderer::EndMode();
