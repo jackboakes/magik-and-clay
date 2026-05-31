@@ -439,14 +439,31 @@ namespace Game
             }
         }
 
-        // Click to move the picked entity and provide it with a path
-        if (gameState.activeEntity && gameState.activeEntity->type == EntityType::Golem)
+        // Pick the entity
+        if (Input::IsKeyPressed(Key::MOUSE_LEFT))
         {
-            if (Input::IsKeyPressed(Key::MOUSE_LEFT))
+            Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
+            Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
+            Entity* clickedEntity { EntityFromWorldPosition(virtualWorldPosition) };
+
+            if (clickedEntity && clickedEntity->type == EntityType::Golem)
+            {
+                gameState.activeEntity = clickedEntity;
+            }
+        }
+
+        // Click to move the picked entity and provide it with a path
+        if (Input::IsKeyPressed(Key::MOUSE_RIGHT))
+        {
+            if (gameState.activeEntity && gameState.activeEntity->type == EntityType::Golem)
             {
                 Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
                 Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
-                gameState.activeEntity->path = FindPath(TileCoordinateFromPoint(gameState.activeEntity->position), TileCoordinateFromPoint(virtualWorldPosition));
+
+                Vec2S32 startPosition { TileCoordinateFromPoint(gameState.activeEntity->position) };
+                Vec2S32 targetPosition { TileCoordinateFromPoint(virtualWorldPosition) };
+
+                gameState.activeEntity->path = FindPath(startPosition, targetPosition);
             }
         }
 
@@ -487,6 +504,29 @@ namespace Game
             {
                 entity.position.x += (delta.x / distance) * step;
                 entity.position.y += (delta.y / distance) * step;
+            }
+        }
+
+        // Snap picked entity to tile grid
+        if (gameState.activeEntity && gameState.activeEntity->path.empty())
+        {
+            Vec2S32 entityTilePosition { TileCoordinateFromPoint(gameState.activeEntity->position) };
+            Vec2F32 targetPosition { static_cast<float>(entityTilePosition.x) * g_TileSize, static_cast<float>(entityTilePosition.y) * g_TileSize };
+
+            float speed { gameState.activeEntity->speed * g_TileSize };
+            float step { speed * deltaTime };
+
+            Vec2F32 delta { targetPosition - gameState.activeEntity->position };
+            float distance { std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+
+            if (distance <= step)
+            {
+                gameState.activeEntity->position = targetPosition;
+            }
+            else
+            {
+                gameState.activeEntity->position.x += (delta.x / distance) * step;
+                gameState.activeEntity->position.y += (delta.y / distance) * step;
             }
         }
     }

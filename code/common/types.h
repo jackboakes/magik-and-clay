@@ -15,6 +15,11 @@ struct Vec2S32
     {
         return { x - other.x, y - other.y };
     }
+
+    bool operator==(const Vec2S32& other) const
+    {
+        return x == other.x && y == other.y;
+    }
 };
 
 struct Vec2F32
