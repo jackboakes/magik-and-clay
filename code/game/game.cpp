@@ -43,17 +43,69 @@ namespace Game
         return VirtualPositonFromScreenPoint(Input::GetMousePosition());
     }
 
-    Entity* EntityFromWorldPosition(const Vec2F32 position)
+    Entity* GolemFromWorldPosition(const Vec2F32 position)
     {
         for (auto& entity : gameState.entities)
         {
-            RectF32 entityRect { entity.position.x, entity.position.y, static_cast<float>(entity.animations[0].frameWidth), static_cast<float>(entity.animations[0].frameHeight) };
+            size_t idx = entity.animationIdx;
+            RectF32 entityRect { entity.position.x, entity.position.y, static_cast<float>(entity.animations[idx].frameWidth), static_cast<float>(entity.animations[idx].frameHeight) };
             if (CheckCollisionPointInRect(position, entityRect))
+            {
+                if (entity.type == EntityType::Golem)
+                {
+                    return &entity;
+                }
+            }
+        }
+
+        return nullptr;
+    }
+
+    Entity* CropFromWorldPosition(const Vec2F32 position)
+    {
+        for (auto& entity : gameState.entities)
+        {
+            size_t idx = entity.animationIdx;
+            RectF32 entityRect { entity.position.x, entity.position.y, static_cast<float>(entity.animations[idx].frameWidth), static_cast<float>(entity.animations[idx].frameHeight) };
+            if (CheckCollisionPointInRect(position, entityRect))
+            {
+                if (entity.type == EntityType::Crop)
+                {
+                    return &entity;
+                }
+            }
+        }
+
+        return nullptr;
+    }
+
+    Entity* CauldronFromWorldPosition(const Vec2F32 position)
+    {
+        for (auto& entity : gameState.entities)
+        {
+            size_t idx = entity.animationIdx;
+            RectF32 entityRect { entity.position.x, entity.position.y, static_cast<float>(entity.animations[idx].frameWidth), static_cast<float>(entity.animations[idx].frameHeight) };
+            if (CheckCollisionPointInRect(position, entityRect))
+            {
+                if (entity.type == EntityType::Cauldron)
+                {
+                    return &entity;
+                }
+            }
+        }
+
+        return nullptr;
+    }
+
+    Entity* EntityFromId(const EntityId id)
+    {
+        for (auto& entity : gameState.entities)
+        {
+            if (entity.id == id)
             {
                 return &entity;
             }
         }
-
         return nullptr;
     }
 
@@ -220,6 +272,7 @@ namespace Game
 
 
         Entity cauldron {};
+        cauldron.id = gameState.nextEntityId++;
         cauldron.type = EntityType::Cauldron;
         cauldron.texture = cauldronTexture;
         cauldron.position = { 80.0f * g_TileSize, 44.0f * g_TileSize };
@@ -236,12 +289,13 @@ namespace Game
         cauldronAnimation.yOffset = 16;
         cauldronAnimation.frameAdvancement = 8;
 
-        cauldron.animations[0] = cauldronAnimation;
+        cauldron.animations[cauldron.animationIdx] = cauldronAnimation;
         gameState.entities.push_back(cauldron);
 
         gameState.g_GolemTexture = Renderer::LoadTexture("../data/textures/golem.png");
 
         Entity golem {};
+        golem.id = gameState.nextEntityId++;
         golem.type = EntityType::Golem;
         golem.texture = gameState.g_GolemTexture;
         golem.position = { 80.0f * g_TileSize, 47.0f * g_TileSize }; // Near the cauldron in the center of the map
@@ -265,6 +319,7 @@ namespace Game
         carrying.yOffset = 48;
         carrying.frameAdvancement = 30;
 
+        golem.animationIdx = 0;
         golem.animations[static_cast<int>(GolemState::Idle)] = idle;
         golem.animations[0] = idle; // carrying animation is tied to bool and not state
         golem.animations[1] = carrying;
@@ -309,6 +364,7 @@ namespace Game
         for (const Vec2S32& location : daisyLocations)
         {
             Entity daisy;
+            daisy.id = gameState.nextEntityId++;
             daisy.type = EntityType::Crop;
             daisy.texture = daisyAtlas;
             daisy.position = { location.x * static_cast<float>(g_TileSize), location.y * static_cast<float>(g_TileSize) };
@@ -350,6 +406,7 @@ namespace Game
             if (gridPosition.x >= 0 && gridPosition.x < g_TileMapWidth && gridPosition.y >= 0 && gridPosition.y < g_TileMapHeight && !CheckCollidableFromTile(gridPosition))
             {
                 Entity golem {};
+                golem.id = gameState.nextEntityId++;
                 golem.type = EntityType::Golem;
                 golem.texture = gameState.g_GolemTexture;
                 golem.position = { static_cast<float>(gridPosition.x) * g_TileSize, static_cast<float>(gridPosition.y) * g_TileSize };
@@ -412,30 +469,32 @@ namespace Game
         for (auto& entity : gameState.entities)
         {
             if (entity.type != EntityType::Golem) continue;
+            size_t idx { entity.animationIdx };
             entity.animationTicks++;
-            uint64_t frame { (entity.animationTicks / entity.animations[0].frameAdvancement) % entity.animations[0].frameCount };
-            entity.animations[0].currentFrame = static_cast<uint32_t>(frame);
+            uint64_t frame { (entity.animationTicks / entity.animations[idx].frameAdvancement) % entity.animations[idx].frameCount };
+            entity.animations[idx].currentFrame = static_cast<uint32_t>(frame);
         }
 
         for (auto& entity : gameState.entities)
         {
             if (entity.type != EntityType::Cauldron) continue;
+            size_t idx { entity.animationIdx };
             entity.animationTicks++;
-            uint64_t frame { (entity.animationTicks / entity.animations[0].frameAdvancement) % entity.animations[0].frameCount };
-            entity.animations[0].currentFrame = static_cast<uint32_t>(frame);
+            uint64_t frame { (entity.animationTicks / entity.animations[idx].frameAdvancement) % entity.animations[idx].frameCount };
+            entity.animations[idx].currentFrame = static_cast<uint32_t>(frame);
         }
 
         for (auto& entity : gameState.entities)
         {
             if (entity.type != EntityType::Crop) continue;
             if (entity.growthTicks >= 1200) continue;
-
+            size_t idx { entity.animationIdx };
             entity.growthTicks++;
             int stage { static_cast<int>(entity.growthTicks / 300) };
-            entity.animations[0].currentFrame = std::clamp(stage, 0, 3);
+            entity.animations[idx].currentFrame = std::clamp(stage, 0, 3);
             if (stage >= 3)
             {
-                entity.harestable = true;
+                entity.harvestable = true;
             }
         }
 
@@ -444,11 +503,11 @@ namespace Game
         {
             Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
             Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
-            Entity* clickedEntity { EntityFromWorldPosition(virtualWorldPosition) };
 
-            if (clickedEntity && clickedEntity->type == EntityType::Golem)
+            Entity* golem { GolemFromWorldPosition(virtualWorldPosition) };
+            if (golem)
             {
-                gameState.activeEntity = clickedEntity;
+                gameState.activeEntity = golem;
             }
         }
 
@@ -457,78 +516,122 @@ namespace Game
         {
             if (gameState.activeEntity && gameState.activeEntity->type == EntityType::Golem)
             {
-                Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
-                Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
 
-                Vec2S32 startPosition { TileCoordinateFromPoint(gameState.activeEntity->position) };
-                Vec2S32 targetPosition { TileCoordinateFromPoint(virtualWorldPosition) };
+                if (gameState.activeEntity->golemState == GolemState::Idle ||
+                    gameState.activeEntity->golemState == GolemState::Pathing)
+                {
+                    Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
+                    Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
+                    Entity* crop { CropFromWorldPosition(virtualWorldPosition) };
 
-                gameState.activeEntity->path = FindPath(startPosition, targetPosition);
+                    Vec2S32 startPosition { TileCoordinateFromPoint(gameState.activeEntity->position) };
+                    Vec2S32 targetPosition { TileCoordinateFromPoint(virtualWorldPosition) };
+
+                    if (crop)
+                    {
+                        gameState.activeEntity->cropTargetId = crop->id;
+                    }
+                    else
+                    {
+                        gameState.activeEntity->cropTargetId = 0;
+                    }
+                    gameState.activeEntity->path = FindPath(startPosition, targetPosition);
+
+                    if (!gameState.activeEntity->path.empty())
+                    {
+                        gameState.activeEntity->golemState = GolemState::Pathing;
+                    }
+                }
             }
         }
 
-        // Pick the entity
-        if (Input::IsKeyPressed(Key::MOUSE_LEFT))
+        // Update entity movement
         {
-            Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
-            Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
-
-            Entity* entity { EntityFromWorldPosition(virtualWorldPosition) };
-            if (entity && entity->type == EntityType::Golem)
+            // Update the entities path
+            for (auto& entity : gameState.entities)
             {
-                gameState.activeEntity = entity;
+                if (entity.type != EntityType::Golem) continue;
+                if (entity.path.empty()) continue;
+                if (entity.golemState != GolemState::Pathing) continue;
+
+                Vec2S32 nextTile { entity.path.back() };
+                Vec2F32 targetPosition { static_cast<float>(nextTile.x) * g_TileSize, static_cast<float>(nextTile.y) * g_TileSize };
+
+                float speed { entity.speed * g_TileSize };
+                float step { speed * deltaTime };
+
+                Vec2F32 delta { targetPosition - entity.position };
+                float distance { std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+
+                if (distance <= step)
+                {
+                    entity.position = targetPosition;
+                    entity.path.pop_back();
+
+                    if (entity.path.empty())
+                    {
+                        Entity* crop { EntityFromId(entity.cropTargetId) };
+                        if (crop)
+                        {
+                            if (TileCoordinateFromPoint(crop->position) == TileCoordinateFromPoint(entity.position))
+                            {
+                                if (crop->harvestable && crop->type == EntityType::Crop)
+                                {
+                                    entity.golemState = GolemState::Harvesting;
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    entity.position.x += (delta.x / distance) * step;
+                    entity.position.y += (delta.y / distance) * step;
+                }
+            }
+
+            // Snap picked entity to tile grid
+            if (gameState.activeEntity && gameState.activeEntity->path.empty())
+            {
+                Vec2S32 entityTilePosition { TileCoordinateFromPoint(gameState.activeEntity->position) };
+                Vec2F32 targetPosition { static_cast<float>(entityTilePosition.x) * g_TileSize, static_cast<float>(entityTilePosition.y) * g_TileSize };
+
+                float speed { gameState.activeEntity->speed * g_TileSize };
+                float step { speed * deltaTime };
+
+                Vec2F32 delta { targetPosition - gameState.activeEntity->position };
+                float distance { std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+
+                if (distance <= step)
+                {
+                    gameState.activeEntity->position = targetPosition;
+                }
+                else
+                {
+                    gameState.activeEntity->position.x += (delta.x / distance) * step;
+                    gameState.activeEntity->position.y += (delta.y / distance) * step;
+                }
             }
         }
 
-        // Update the entities path
         for (auto& entity : gameState.entities)
         {
             if (entity.type != EntityType::Golem) continue;
-            if (entity.path.empty()) continue;
-            
-            Vec2S32 nextTile { entity.path.back() };
-            Vec2F32 targetPosition { static_cast<float>(nextTile.x) * g_TileSize, static_cast<float>(nextTile.y) * g_TileSize };
+            if (entity.golemState != GolemState::Harvesting) continue;
 
-            float speed { entity.speed * g_TileSize };
-            float step { speed * deltaTime };
-
-            Vec2F32 delta { targetPosition - entity.position };
-            float distance { std::sqrt(delta.x * delta.x + delta.y * delta.y) };
-
-            if (distance <= step)
+            Entity* crop { EntityFromId(entity.cropTargetId)};
+            if (crop && crop->harvestable && crop->type == EntityType::Crop)
             {
-                entity.position = targetPosition;
-                entity.path.pop_back();
-            }
-            else
-            {
-                entity.position.x += (delta.x / distance) * step;
-                entity.position.y += (delta.y / distance) * step;
+                entity.animationIdx = 1;
+                entity.golemState = GolemState::Idle;
+                crop->markedForDeletion = true;
             }
         }
 
-        // Snap picked entity to tile grid
-        if (gameState.activeEntity && gameState.activeEntity->path.empty())
+        std::erase_if(gameState.entities, [](const Entity& entity)
         {
-            Vec2S32 entityTilePosition { TileCoordinateFromPoint(gameState.activeEntity->position) };
-            Vec2F32 targetPosition { static_cast<float>(entityTilePosition.x) * g_TileSize, static_cast<float>(entityTilePosition.y) * g_TileSize };
-
-            float speed { gameState.activeEntity->speed * g_TileSize };
-            float step { speed * deltaTime };
-
-            Vec2F32 delta { targetPosition - gameState.activeEntity->position };
-            float distance { std::sqrt(delta.x * delta.x + delta.y * delta.y) };
-
-            if (distance <= step)
-            {
-                gameState.activeEntity->position = targetPosition;
-            }
-            else
-            {
-                gameState.activeEntity->position.x += (delta.x / distance) * step;
-                gameState.activeEntity->position.y += (delta.y / distance) * step;
-            }
-        }
+            return entity.markedForDeletion;
+        });
     }
 
     void DrawFrame(float deltaTime)
@@ -562,14 +665,15 @@ namespace Game
 
                 for (const auto& entity : gameState.entities)
                 {
-                    uint32_t height { entity.animations[0].frameHeight };
-                    uint32_t width { entity.animations[0].frameWidth };
+                    size_t idx = entity.animationIdx;
+                    uint32_t height { entity.animations[idx].frameHeight };
+                    uint32_t width { entity.animations[idx].frameWidth };
 
                     RectF32 source { 0 };
                     source.width = width;
                     source.height = height;
-                    source.x = entity.animations[0].xOffset + (entity.animations[0].currentFrame * (entity.animations[0].xOffset + width));
-                    source.y = entity.animations[0].yOffset;
+                    source.x = entity.animations[idx].xOffset + (entity.animations[idx].currentFrame * (entity.animations[idx].xOffset + width));
+                    source.y = entity.animations[idx].yOffset;
 
                     RectF32 destination { 0 };
                     destination.width = width;
@@ -608,11 +712,12 @@ namespace Game
                 {
                     Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
                     Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
-                    Entity* entity { EntityFromWorldPosition(virtualWorldPosition) };
+                    Entity* golem { CauldronFromWorldPosition(virtualWorldPosition) };
 
-                    if (entity && entity->type == EntityType::Golem)
+                    if (golem)
                     {
-                        RectF32 entityRect { entity->position.x, entity->position.y, static_cast<float>(entity->animations[0].frameWidth), static_cast<float>(entity->animations[0].frameHeight) };
+                        size_t idx { golem->animationIdx };
+                        RectF32 entityRect { golem->position.x, golem->position.y, static_cast<float>(golem->animations[idx].frameWidth), static_cast<float>(golem->animations[idx].frameHeight) };
                         if (CheckCollisionPointInRect(virtualWorldPosition, entityRect))
                         {
                             Renderer::DrawText(gameState.font1, "Hovered", virtualMousePosition.x, virtualMousePosition.y, gameState.font1.size);

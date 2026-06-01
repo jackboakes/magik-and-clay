@@ -62,9 +62,11 @@ struct SpriteAnimation
     uint32_t frameAdvancement { 1 };
 };
 
+using EntityId = uint32_t;
 
 struct Entity
 {
+    EntityId id { 0 };
     EntityType type;
     Texture texture;
 
@@ -74,16 +76,21 @@ struct Entity
     GolemState golemState { GolemState::Idle };
 
     std::array<SpriteAnimation, 2> animations;
-
+    size_t animationIdx { 0 };
     uint32_t animationTicks;
+
     uint32_t growthTicks;
-    bool harestable { false };
+    bool harvestable { false };
 
     bool collidable { false };
     uint32_t collisionWidth { 1 };  // width in tiles
     uint32_t collisionHeight { 1 }; // height in tiles
 
+
+    // Ad-hoc farming
     bool cropTaken { false };
+    EntityId cropTargetId;
+    bool markedForDeletion { false };
 
     std::vector<Vec2S32> path;
 };
@@ -97,6 +104,7 @@ struct GameState
 
     Camera camera;
 
+    EntityId nextEntityId { 1 };
     std::vector<Entity> entities;
     Entity* activeEntity;
 
