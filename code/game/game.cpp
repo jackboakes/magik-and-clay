@@ -266,8 +266,8 @@ namespace Game
 
         gameState.entities.reserve(256);
 
-        gameState.g_InteractableTexture = Renderer::LoadTexture("../data/textures/interactable.png");
-
+        gameState.interactableTexture = Renderer::LoadTexture("../data/textures/interactable.png");
+        gameState.daisyItemTexture = Renderer::LoadTexture("../data/textures/daisy_item.png");
         Texture cauldronTexture { Renderer::LoadTexture("../data/textures/cauldron.png") };
 
 
@@ -292,12 +292,12 @@ namespace Game
         cauldron.animations[cauldron.animationIdx] = cauldronAnimation;
         gameState.entities.push_back(cauldron);
 
-        gameState.g_GolemTexture = Renderer::LoadTexture("../data/textures/golem.png");
+        gameState.golemTexture = Renderer::LoadTexture("../data/textures/golem.png");
 
         Entity golem {};
         golem.id = gameState.nextEntityId++;
         golem.type = EntityType::Golem;
-        golem.texture = gameState.g_GolemTexture;
+        golem.texture = gameState.golemTexture;
         golem.position = { 80.0f * g_TileSize, 47.0f * g_TileSize }; // Near the cauldron in the center of the map
         golem.targetPosition = golem.position;
         golem.speed = 3.0f;
@@ -408,7 +408,7 @@ namespace Game
                 Entity golem {};
                 golem.id = gameState.nextEntityId++;
                 golem.type = EntityType::Golem;
-                golem.texture = gameState.g_GolemTexture;
+                golem.texture = gameState.golemTexture;
                 golem.position = { static_cast<float>(gridPosition.x) * g_TileSize, static_cast<float>(gridPosition.y) * g_TileSize };
                 golem.targetPosition = golem.position;
                 golem.speed = 3.0f;
@@ -575,7 +575,7 @@ namespace Game
                         {
                             if (TileCoordinateFromPoint(crop->position) == TileCoordinateFromPoint(entity.position))
                             {
-                                if (crop->harvestable && crop->type == EntityType::Crop)
+                                if (entity.heldItem == 0 && crop->harvestable && crop->type == EntityType::Crop)
                                 {
                                     entity.golemState = GolemState::Harvesting;
                                 }
@@ -625,7 +625,30 @@ namespace Game
                 entity.animationIdx = 1;
                 entity.golemState = GolemState::Idle;
                 crop->markedForDeletion = true;
+
+                Entity daisyItem {};
+                daisyItem.id = gameState.nextEntityId++;
+                daisyItem.type = EntityType::Item;
+                daisyItem.texture = gameState.daisyItemTexture;
+                gameState.entities.push_back(daisyItem);
+
+                entity.heldItem = daisyItem.id;
             }
+        }
+
+        for (auto& entity : gameState.entities)
+        {
+            if (entity.heldItem == 0) continue;
+            size_t idx { entity.animationIdx };
+            
+
+            Entity* daisyItem { EntityFromId(entity.heldItem) };
+            float animationBob { entity.animations[idx].currentFrame ? 2.0f : 0.0f };
+            float offsetX { static_cast<float>(daisyItem->texture.width) / 2.0f };
+            float offsetY { -(static_cast<float>(daisyItem->texture.height) - 1.0f) + animationBob };
+
+            daisyItem->position.x = entity.position.x + offsetX;
+            daisyItem->position.y = entity.position.y + offsetY;
         }
 
         std::erase_if(gameState.entities, [](const Entity& entity)
@@ -684,14 +707,26 @@ namespace Game
                     Renderer::DrawSprite(entity.texture, destination, source);
                 }
 
+                for (const auto& entity : gameState.entities)
+                {
+                    if (entity.type != EntityType::Item) continue;
+
+                    RectF32 dest;
+                    dest.width = gameState.daisyItemTexture.width;
+                    dest.height = gameState.daisyItemTexture.height;
+                    dest.x = entity.position.x;
+                    dest.y = entity.position.y;
+                    Renderer::DrawSprite(entity.texture, dest);
+                }
+
                 if (gameState.activeEntity)
                 {
                     RectF32 dest;
-                    dest.width = gameState.g_InteractableTexture.width;
-                    dest.height = gameState.g_InteractableTexture.height;
+                    dest.width = gameState.interactableTexture.width;
+                    dest.height = gameState.interactableTexture.height;
                     dest.x = gameState.activeEntity->position.x;
                     dest.y = gameState.activeEntity->position.y;
-                    Renderer::DrawSprite(gameState.g_InteractableTexture, dest);
+                    Renderer::DrawSprite(gameState.interactableTexture, dest);
                 }
 
             Renderer::EndMode();

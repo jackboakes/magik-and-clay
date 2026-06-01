@@ -42,7 +42,8 @@ enum class EntityType
     None = 0,
     Golem,
     Crop,
-    Cauldron
+    Cauldron,
+    Item
 };
 
 struct SpriteAnimation
@@ -89,8 +90,9 @@ struct Entity
 
     // Ad-hoc farming
     bool cropTaken { false };
-    EntityId cropTargetId;
+    EntityId cropTargetId { 0 };
     bool markedForDeletion { false };
+    EntityId heldItem { 0 };
 
     std::vector<Vec2S32> path;
 };
@@ -113,8 +115,9 @@ struct GameState
     Font font1;
     Font font2;
 
-    Texture g_GolemTexture;
-    Texture g_InteractableTexture;
+    Texture golemTexture;
+    Texture interactableTexture;
+    Texture daisyItemTexture;
 };
 
 static GameState gameState { 0 };
