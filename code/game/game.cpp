@@ -439,7 +439,7 @@ namespace Game
 
         if (Input::IsKeyPressed(Key::ESCAPE))
         {
-            gameState.activeEntity = nullptr;
+            gameState.activeEntityId = 0;
         }
 
 
@@ -507,39 +507,40 @@ namespace Game
             Entity* golem { GolemFromWorldPosition(virtualWorldPosition) };
             if (golem)
             {
-                gameState.activeEntity = golem;
+                gameState.activeEntityId = golem->id;
             }
         }
 
         // Click to move the picked entity and provide it with a path
         if (Input::IsKeyPressed(Key::MOUSE_RIGHT))
         {
-            if (gameState.activeEntity && gameState.activeEntity->type == EntityType::Golem)
+            Entity* entity { EntityFromId(gameState.activeEntityId) };
+            if (entity && entity->type == EntityType::Golem)
             {
 
-                if (gameState.activeEntity->golemState == GolemState::Idle ||
-                    gameState.activeEntity->golemState == GolemState::Pathing)
+                if (entity->golemState == GolemState::Idle ||
+                    entity->golemState == GolemState::Pathing)
                 {
                     Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
                     Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
                     Entity* crop { CropFromWorldPosition(virtualWorldPosition) };
 
-                    Vec2S32 startPosition { TileCoordinateFromPoint(gameState.activeEntity->position) };
+                    Vec2S32 startPosition { TileCoordinateFromPoint(entity->position) };
                     Vec2S32 targetPosition { TileCoordinateFromPoint(virtualWorldPosition) };
 
                     if (crop)
                     {
-                        gameState.activeEntity->cropTargetId = crop->id;
+                        entity->cropTargetId = crop->id;
                     }
                     else
                     {
-                        gameState.activeEntity->cropTargetId = 0;
+                        entity->cropTargetId = 0;
                     }
-                    gameState.activeEntity->path = FindPath(startPosition, targetPosition);
+                    entity->path = FindPath(startPosition, targetPosition);
 
-                    if (!gameState.activeEntity->path.empty())
+                    if (!entity->path.empty())
                     {
-                        gameState.activeEntity->golemState = GolemState::Pathing;
+                        entity->golemState = GolemState::Pathing;
                     }
                 }
             }
@@ -590,26 +591,29 @@ namespace Game
                 }
             }
 
-            // Snap picked entity to tile grid
-            if (gameState.activeEntity && gameState.activeEntity->path.empty())
             {
-                Vec2S32 entityTilePosition { TileCoordinateFromPoint(gameState.activeEntity->position) };
-                Vec2F32 targetPosition { static_cast<float>(entityTilePosition.x) * g_TileSize, static_cast<float>(entityTilePosition.y) * g_TileSize };
-
-                float speed { gameState.activeEntity->speed * g_TileSize };
-                float step { speed * deltaTime };
-
-                Vec2F32 delta { targetPosition - gameState.activeEntity->position };
-                float distance { std::sqrt(delta.x * delta.x + delta.y * delta.y) };
-
-                if (distance <= step)
+                Entity* entity { EntityFromId(gameState.activeEntityId) };
+                // Snap picked entity to tile grid
+                if (entity && entity->path.empty())
                 {
-                    gameState.activeEntity->position = targetPosition;
-                }
-                else
-                {
-                    gameState.activeEntity->position.x += (delta.x / distance) * step;
-                    gameState.activeEntity->position.y += (delta.y / distance) * step;
+                    Vec2S32 entityTilePosition { TileCoordinateFromPoint(entity->position) };
+                    Vec2F32 targetPosition { static_cast<float>(entityTilePosition.x) * g_TileSize, static_cast<float>(entityTilePosition.y) * g_TileSize };
+
+                    float speed { entity->speed * g_TileSize };
+                    float step { speed * deltaTime };
+
+                    Vec2F32 delta { targetPosition - entity->position };
+                    float distance { std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+
+                    if (distance <= step)
+                    {
+                        entity->position = targetPosition;
+                    }
+                    else
+                    {
+                        entity->position.x += (delta.x / distance) * step;
+                        entity->position.y += (delta.y / distance) * step;
+                    }
                 }
             }
         }
@@ -636,6 +640,7 @@ namespace Game
             }
         }
 
+        // update item positions
         for (auto& entity : gameState.entities)
         {
             if (entity.heldItem == 0) continue;
@@ -719,15 +724,19 @@ namespace Game
                     Renderer::DrawSprite(entity.texture, dest);
                 }
 
-                if (gameState.activeEntity)
                 {
-                    RectF32 dest;
-                    dest.width = gameState.interactableTexture.width;
-                    dest.height = gameState.interactableTexture.height;
-                    dest.x = gameState.activeEntity->position.x;
-                    dest.y = gameState.activeEntity->position.y;
-                    Renderer::DrawSprite(gameState.interactableTexture, dest);
+                    Entity* entity { EntityFromId(gameState.activeEntityId) };
+                    if (entity)
+                    {
+                        RectF32 dest;
+                        dest.width = gameState.interactableTexture.width;
+                        dest.height = gameState.interactableTexture.height;
+                        dest.x = entity->position.x;
+                        dest.y = entity->position.y;
+                        Renderer::DrawSprite(gameState.interactableTexture, dest);
+                    }
                 }
+
 
             Renderer::EndMode();
 

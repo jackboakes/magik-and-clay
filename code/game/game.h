@@ -108,7 +108,7 @@ struct GameState
 
     EntityId nextEntityId { 1 };
     std::vector<Entity> entities;
-    Entity* activeEntity;
+    EntityId activeEntityId { 0 };
 
     // assets
 
