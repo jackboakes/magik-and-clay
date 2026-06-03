@@ -197,11 +197,11 @@ namespace Game
         int costSoFar[g_TileMapWidth][g_TileMapHeight] = {};
         costSoFar[start.x][start.y] = 0;
 
-        auto Heuristic = [](Vec2S32 start, Vec2S32 target)
+        auto Heuristic { [](Vec2S32 start, Vec2S32 target) -> int
             {
                 Vec2S32 delta { std::abs(start.x - target.x), std::abs(start.y - target.y) };
                 return 10 * (delta.x + delta.y) + (-6) * std::min(delta.x, delta.y);
-            };
+            } };
 
         while (!frontier.empty())
         {
@@ -517,12 +517,12 @@ namespace Game
             Entity* entity { EntityFromId(gameState.activeEntityId) };
             if (entity && entity->type == EntityType::Golem)
             {
+                Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
+                Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
 
                 if (entity->golemState == GolemState::Idle ||
                     entity->golemState == GolemState::Pathing)
                 {
-                    Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
-                    Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
                     Entity* crop { CropFromWorldPosition(virtualWorldPosition) };
 
                     Vec2S32 startPosition { TileCoordinateFromPoint(entity->position) };
@@ -542,6 +542,57 @@ namespace Game
                     {
                         entity->golemState = GolemState::Pathing;
                     }
+                }
+
+                if (entity->heldItem)
+                {
+                    Entity* cauldron { CauldronFromWorldPosition(virtualWorldPosition) };
+
+                    if (cauldron)
+                    {
+                        Vec2S32 cauldronTile { TileCoordinateFromPoint(cauldron->position) };
+                        Vec2S32 entityTile { TileCoordinateFromPoint(entity->position) };
+
+                        auto IsCauldronTile { [&cauldronTile](Vec2S32 tile) -> bool
+                            {
+                                return tile.x >= cauldronTile.x && tile.x <= cauldronTile.x + 1 &&
+                                    tile.y >= cauldronTile.y && tile.y <= cauldronTile.y + 1;
+                            } };
+
+                        Vec2S32 bestTile {};
+                        float bestDistance { std::numeric_limits<float>::max() };
+
+                        for (int x = cauldronTile.x - 1; x <= cauldronTile.x + 2; x++)
+                        {
+                            for (int y = cauldronTile.y - 1; y <= cauldronTile.y + 2; y++)
+                            {
+                                Vec2S32 candidate { x, y };
+
+                                if (IsCauldronTile(candidate)) continue;
+
+                                float dx { static_cast<float>(entityTile.x - x) };
+                                float dy { static_cast<float>(entityTile.y - y) };
+                                float distSq { (dx * dx) + (dy * dy) };
+
+                                if (distSq < bestDistance)
+                                {
+                                    bestDistance = distSq;
+                                    bestTile = candidate;
+                                }
+                            }
+                        }
+
+                        Vec2S32 startPosition { TileCoordinateFromPoint(entity->position) };
+                        Vec2S32 targetPosition { bestTile };
+                        entity->path = FindPath(startPosition, targetPosition);
+
+                        if (!entity->path.empty())
+                        {
+                            entity->golemState = GolemState::Pathing;
+                        }
+                    }
+
+                    
                 }
             }
         }
@@ -571,6 +622,7 @@ namespace Game
 
                     if (entity.path.empty())
                     {
+                        bool stateChanged { false };
                         Entity* crop { EntityFromId(entity.cropTargetId) };
                         if (crop)
                         {
@@ -579,8 +631,32 @@ namespace Game
                                 if (entity.heldItem == 0 && crop->harvestable && crop->type == EntityType::Crop)
                                 {
                                     entity.golemState = GolemState::Harvesting;
+                                    stateChanged = true;
                                 }
                             }
+                        }
+
+                        if (!stateChanged && entity.heldItem != 0)
+                        {
+                            // Check if the golem is next to a cauldron to deposit the item
+                            for (const auto& cauldron : gameState.entities)
+                            {
+                                if (cauldron.type != EntityType::Cauldron) continue;
+                                Vec2S32 cauldronTile { TileCoordinateFromPoint(cauldron.position) };
+                                Vec2S32 golemTile { TileCoordinateFromPoint(entity.position) };
+                                if (golemTile.x >= cauldronTile.x - 1 && golemTile.x <= cauldronTile.x + 2 &&
+                                    golemTile.y >= cauldronTile.y - 1 && golemTile.y <= cauldronTile.y + 2)
+                                {
+                                    entity.golemState = GolemState::Depositing;
+                                    stateChanged = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!stateChanged)
+                        {
+                            entity.golemState = GolemState::Idle;
                         }
                     }
                 }
@@ -638,6 +714,21 @@ namespace Game
 
                 entity.heldItem = daisyItem.id;
             }
+        }
+
+        for (auto& entity : gameState.entities)
+        {
+            if (entity.type != EntityType::Golem) continue;
+            if (entity.golemState != GolemState::Depositing) continue;
+
+            Entity* item { EntityFromId(entity.heldItem) };
+            if (item)
+            {
+                item->markedForDeletion = true;
+            }
+            entity.heldItem = 0;
+            entity.animationIdx = 0;
+            entity.golemState = GolemState::Idle;
         }
 
         // update item positions
