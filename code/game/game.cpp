@@ -47,14 +47,12 @@ namespace Game
     {
         for (auto& entity : gameState.entities)
         {
+            if (entity.kind != EntityKind::Golem) continue;
             size_t idx = entity.animationIdx;
             RectF32 entityRect { entity.position.x, entity.position.y, static_cast<float>(entity.animations[idx].frameWidth), static_cast<float>(entity.animations[idx].frameHeight) };
             if (CheckCollisionPointInRect(position, entityRect))
             {
-                if (entity.type == EntityType::Golem)
-                {
-                    return &entity;
-                }
+                return &entity;
             }
         }
 
@@ -65,14 +63,12 @@ namespace Game
     {
         for (auto& entity : gameState.entities)
         {
-            size_t idx = entity.animationIdx;
+            if (entity.kind != EntityKind::Crop) continue;
+            size_t idx { entity.animationIdx };
             RectF32 entityRect { entity.position.x, entity.position.y, static_cast<float>(entity.animations[idx].frameWidth), static_cast<float>(entity.animations[idx].frameHeight) };
             if (CheckCollisionPointInRect(position, entityRect))
             {
-                if (entity.type == EntityType::Crop)
-                {
-                    return &entity;
-                }
+                return &entity;
             }
         }
 
@@ -83,29 +79,35 @@ namespace Game
     {
         for (auto& entity : gameState.entities)
         {
+            if (entity.kind != EntityKind::Cauldron) continue;
             size_t idx = entity.animationIdx;
             RectF32 entityRect { entity.position.x, entity.position.y, static_cast<float>(entity.animations[idx].frameWidth), static_cast<float>(entity.animations[idx].frameHeight) };
             if (CheckCollisionPointInRect(position, entityRect))
             {
-                if (entity.type == EntityType::Cauldron)
-                {
-                    return &entity;
-                }
+                return &entity;
             }
         }
 
         return nullptr;
     }
 
-    Entity* EntityFromId(const EntityId id)
+    Entity* EntityFromHandle(const EntityHandle handle)
     {
-        for (auto& entity : gameState.entities)
+        if (handle.id == 0)
         {
-            if (entity.id == id)
-            {
-                return &entity;
-            }
+            return nullptr;
         }
+        if (handle.index >= gameState.entities.size())
+        {
+            return nullptr;
+        }
+
+        Entity* entity { &gameState.entities[handle.index] };
+        if (entity->handle.id == handle.id)
+        {
+            return entity;
+        }
+
         return nullptr;
     }
 
@@ -113,7 +115,7 @@ namespace Game
     {
         for (const auto& entity : gameState.entities)
         {
-            if (!entity.collidable) continue;
+            if (!entity.HasFlag(EntityFlags::Collidable)) continue;
 
             Vec2S32 entityTile { TileCoordinateFromPoint(entity.position) };
 
@@ -146,13 +148,13 @@ namespace Game
             while (std::getline(ss, token, ','))
             {
                 Tile tile;
-                tile.type = TileType::None;
+                tile.kind = TileKind::None;
                 switch (std::stoi(token))
                 {
                 case -1:                                   break;
-                case 1: tile.type = TileType::Grass_1;     break;
-                case 2: tile.type = TileType::Grass_2;     break;
-                case 3: tile.type = TileType::Grass_3;     break;
+                case 1: tile.kind = TileKind::Grass_1;     break;
+                case 2: tile.kind = TileKind::Grass_2;     break;
+                case 3: tile.kind = TileKind::Grass_3;     break;
                 }
 
                 if (x < g_TileMapWidth && y < g_TileMapHeight)
@@ -259,76 +261,90 @@ namespace Game
 
         return{};
     }
+
+    Entity* CreateEntity(EntityKind kind)
+    {
+        for (size_t index = 0; index < gameState.entities.size(); ++index)
+        {
+            if (gameState.entities[index].handle.id == 0)
+            {
+                Entity* entity = &gameState.entities[index];
+                *entity = {};
+                entity->handle.id = gameState.nextEntityId++;
+                entity->handle.index = index;
+                entity->kind = kind;
+                return entity;
+            }
+        }
+        return nullptr;
+    }
     
     void Init()
     {
         Renderer::WindowCreate(1280, 720, L"Farming Sim Prototype");
-
-        gameState.entities.reserve(256);
 
         gameState.interactableTexture = Renderer::LoadTexture("../data/textures/interactable.png");
         gameState.daisyItemTexture = Renderer::LoadTexture("../data/textures/daisy_item.png");
         Texture cauldronTexture { Renderer::LoadTexture("../data/textures/cauldron.png") };
 
 
-        Entity cauldron {};
-        cauldron.id = gameState.nextEntityId++;
-        cauldron.type = EntityType::Cauldron;
-        cauldron.texture = cauldronTexture;
-        cauldron.position = { 80.0f * g_TileSize, 44.0f * g_TileSize };
-        cauldron.collidable = true;
-        cauldron.collisionWidth = 2;
-        cauldron.collisionHeight = 2;
+        Entity* cauldron = CreateEntity(EntityKind::Cauldron);
+        if (cauldron)
+        {
+            cauldron->texture = cauldronTexture;
+            cauldron->position = { 80.0f * g_TileSize, 44.0f * g_TileSize };
+            cauldron->AddFlag(EntityFlags::Collidable);
+            cauldron->collisionWidth = 2;
+            cauldron->collisionHeight = 2;
 
-        SpriteAnimation cauldronAnimation {};
-        cauldronAnimation.currentFrame = 0;
-        cauldronAnimation.frameCount = 7;
-        cauldronAnimation.frameWidth = 32;
-        cauldronAnimation.frameHeight = 32;
-        cauldronAnimation.xOffset = 16;
-        cauldronAnimation.yOffset = 16;
-        cauldronAnimation.frameAdvancement = 8;
+            SpriteAnimation cauldronAnimation {};
+            cauldronAnimation.currentFrame = 0;
+            cauldronAnimation.frameCount = 7;
+            cauldronAnimation.frameWidth = 32;
+            cauldronAnimation.frameHeight = 32;
+            cauldronAnimation.xOffset = 16;
+            cauldronAnimation.yOffset = 16;
+            cauldronAnimation.frameAdvancement = 8;
 
-        cauldron.animations[cauldron.animationIdx] = cauldronAnimation;
-        gameState.entities.push_back(cauldron);
+            cauldron->animations[cauldron->animationIdx] = cauldronAnimation;
+        }
 
         gameState.golemTexture = Renderer::LoadTexture("../data/textures/golem.png");
 
-        Entity golem {};
-        golem.id = gameState.nextEntityId++;
-        golem.type = EntityType::Golem;
-        golem.texture = gameState.golemTexture;
-        golem.position = { 80.0f * g_TileSize, 47.0f * g_TileSize }; // Near the cauldron in the center of the map
-        golem.targetPosition = golem.position;
-        golem.speed = 3.0f;
+        Entity* golem = CreateEntity(EntityKind::Golem);
+        if (golem)
+        {
+            golem->texture = gameState.golemTexture;
+            golem->position = { 80.0f * g_TileSize, 47.0f * g_TileSize }; // Near the cauldron in the center of the map
+            golem->targetPosition = golem->position;
+            golem->speed = 3.0f;
 
-        SpriteAnimation idle {};
-        idle.currentFrame = 0;
-        idle.frameCount = 2;
-        idle.frameWidth = 16;
-        idle.frameHeight = 16;
-        idle.xOffset = 16;
-        idle.yOffset = 16;
-        idle.frameAdvancement = 30;
-        SpriteAnimation carrying {};
-        carrying.currentFrame = 0;
-        carrying.frameCount = 2;
-        carrying.frameWidth = 16;
-        carrying.frameHeight = 16;
-        carrying.xOffset = 16;
-        carrying.yOffset = 48;
-        carrying.frameAdvancement = 30;
+            SpriteAnimation idle {};
+            idle.currentFrame = 0;
+            idle.frameCount = 2;
+            idle.frameWidth = 16;
+            idle.frameHeight = 16;
+            idle.xOffset = 16;
+            idle.yOffset = 16;
+            idle.frameAdvancement = 30;
+            SpriteAnimation carrying {};
+            carrying.currentFrame = 0;
+            carrying.frameCount = 2;
+            carrying.frameWidth = 16;
+            carrying.frameHeight = 16;
+            carrying.xOffset = 16;
+            carrying.yOffset = 48;
+            carrying.frameAdvancement = 30;
 
-        golem.animationIdx = 0;
-        golem.animations[static_cast<int>(GolemState::Idle)] = idle;
-        golem.animations[0] = idle; // carrying animation is tied to bool and not state
-        golem.animations[1] = carrying;
+            golem->animationIdx = 0;
+            golem->animations[static_cast<int>(GolemState::Idle)] = idle;
+            golem->animations[0] = idle; // carrying animation is tied to bool and not state
+            golem->animations[1] = carrying;
+        }
 
-        gameState.entities.push_back(golem);
-
-        g_TileTextures[static_cast<size_t>(TileType::Grass_1)] = Renderer::LoadTexture("../data/textures/grass1.png");
-        g_TileTextures[static_cast<size_t>(TileType::Grass_2)] = Renderer::LoadTexture("../data/textures/grass2.png");
-        g_TileTextures[static_cast<size_t>(TileType::Grass_3)] = Renderer::LoadTexture("../data/textures/grass3.png");
+        g_TileTextures[static_cast<size_t>(TileKind::Grass_1)] = Renderer::LoadTexture("../data/textures/grass1.png");
+        g_TileTextures[static_cast<size_t>(TileKind::Grass_2)] = Renderer::LoadTexture("../data/textures/grass2.png");
+        g_TileTextures[static_cast<size_t>(TileKind::Grass_3)] = Renderer::LoadTexture("../data/textures/grass3.png");
 
         LoadTileMap("../data/tilemap/tilemap1.csv");
 
@@ -363,15 +379,15 @@ namespace Game
 
         for (const Vec2S32& location : daisyLocations)
         {
-            Entity daisy;
-            daisy.id = gameState.nextEntityId++;
-            daisy.type = EntityType::Crop;
-            daisy.texture = daisyAtlas;
-            daisy.position = { location.x * static_cast<float>(g_TileSize), location.y * static_cast<float>(g_TileSize) };
-            daisy.animations[0] = daisyGrowth;
-            daisy.animationTicks = 0;
-            daisy.growthTicks = 0;
-            gameState.entities.push_back(daisy);
+            Entity* daisy = CreateEntity(EntityKind::Crop);
+            if (daisy)
+            {
+                daisy->texture = daisyAtlas;
+                daisy->position = { location.x * static_cast<float>(g_TileSize), location.y * static_cast<float>(g_TileSize) };
+                daisy->animations[0] = daisyGrowth;
+                daisy->animationTicks = 0;
+                daisy->growthTicks = 0;
+            }
         }
     }
 
@@ -405,43 +421,41 @@ namespace Game
             
             if (gridPosition.x >= 0 && gridPosition.x < g_TileMapWidth && gridPosition.y >= 0 && gridPosition.y < g_TileMapHeight && !CheckCollidableFromTile(gridPosition))
             {
-                Entity golem {};
-                golem.id = gameState.nextEntityId++;
-                golem.type = EntityType::Golem;
-                golem.texture = gameState.golemTexture;
-                golem.position = { static_cast<float>(gridPosition.x) * g_TileSize, static_cast<float>(gridPosition.y) * g_TileSize };
-                golem.targetPosition = golem.position;
-                golem.speed = 3.0f;
-                SpriteAnimation idle {};
-                idle.currentFrame = 0;
-                idle.frameCount = 2;
-                idle.frameWidth = 16;
-                idle.frameHeight = 16;
-                idle.xOffset = 16;
-                idle.yOffset = 16;
-                idle.frameAdvancement = 30;
-                SpriteAnimation carrying {};
-                carrying.currentFrame = 0;
-                carrying.frameCount = 2;
-                carrying.frameWidth = 16;
-                carrying.frameHeight = 16;
-                carrying.xOffset = 16;
-                carrying.yOffset = 48;
-                carrying.frameAdvancement = 30;
+                Entity* golem = CreateEntity(EntityKind::Golem);
+                if (golem)
+                {
+                    golem->texture = gameState.golemTexture;
+                    golem->position = { static_cast<float>(gridPosition.x) * g_TileSize, static_cast<float>(gridPosition.y) * g_TileSize };
+                    golem->targetPosition = golem->position;
+                    golem->speed = 3.0f;
+                    SpriteAnimation idle {};
+                    idle.currentFrame = 0;
+                    idle.frameCount = 2;
+                    idle.frameWidth = 16;
+                    idle.frameHeight = 16;
+                    idle.xOffset = 16;
+                    idle.yOffset = 16;
+                    idle.frameAdvancement = 30;
+                    SpriteAnimation carrying {};
+                    carrying.currentFrame = 0;
+                    carrying.frameCount = 2;
+                    carrying.frameWidth = 16;
+                    carrying.frameHeight = 16;
+                    carrying.xOffset = 16;
+                    carrying.yOffset = 48;
+                    carrying.frameAdvancement = 30;
 
-                golem.animations[static_cast<int>(GolemState::Idle)] = idle;
-                golem.animations[0] = idle; // carrying animation is tied to bool and not state
-                golem.animations[1] = carrying;
-
-                gameState.entities.push_back(golem);
+                    golem->animations[static_cast<int>(GolemState::Idle)] = idle;
+                    golem->animations[0] = idle; // carrying animation is tied to bool and not state
+                    golem->animations[1] = carrying;
+                }
             }
         }
 
         if (Input::IsKeyPressed(Key::ESCAPE))
         {
-            gameState.activeEntityId = 0;
+            gameState.activeEntityHandle.id = 0;
         }
-
 
         RectF32 screenRect { Renderer::GetScreenRect() };
         float aspectRatio { screenRect.width / screenRect.height };
@@ -468,7 +482,7 @@ namespace Game
 
         for (auto& entity : gameState.entities)
         {
-            if (entity.type != EntityType::Golem) continue;
+            if (entity.kind != EntityKind::Golem) continue;
             size_t idx { entity.animationIdx };
             entity.animationTicks++;
             uint64_t frame { (entity.animationTicks / entity.animations[idx].frameAdvancement) % entity.animations[idx].frameCount };
@@ -477,7 +491,7 @@ namespace Game
 
         for (auto& entity : gameState.entities)
         {
-            if (entity.type != EntityType::Cauldron) continue;
+            if (entity.kind != EntityKind::Cauldron) continue;
             size_t idx { entity.animationIdx };
             entity.animationTicks++;
             uint64_t frame { (entity.animationTicks / entity.animations[idx].frameAdvancement) % entity.animations[idx].frameCount };
@@ -486,7 +500,7 @@ namespace Game
 
         for (auto& entity : gameState.entities)
         {
-            if (entity.type != EntityType::Crop) continue;
+            if (entity.kind != EntityKind::Crop) continue;
             if (entity.growthTicks >= 1200) continue;
             size_t idx { entity.animationIdx };
             entity.growthTicks++;
@@ -507,15 +521,15 @@ namespace Game
             Entity* golem { GolemFromWorldPosition(virtualWorldPosition) };
             if (golem)
             {
-                gameState.activeEntityId = golem->id;
+                gameState.activeEntityHandle = golem->handle;
             }
         }
 
         // Click to move the picked entity and provide it with a path
         if (Input::IsKeyPressed(Key::MOUSE_RIGHT))
         {
-            Entity* entity { EntityFromId(gameState.activeEntityId) };
-            if (entity && entity->type == EntityType::Golem)
+            Entity* entity { EntityFromHandle(gameState.activeEntityHandle) };
+            if (entity && entity->kind == EntityKind::Golem)
             {
                 Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
                 Vec2F32 virtualWorldPosition { WorldFromScreen(virtualMousePosition, gameState.camera) };
@@ -524,27 +538,32 @@ namespace Game
                     entity->golemState == GolemState::Pathing)
                 {
                     Entity* crop { CropFromWorldPosition(virtualWorldPosition) };
+                    Entity* cauldron { CauldronFromWorldPosition(virtualWorldPosition) };
 
-                    Vec2S32 startPosition { TileCoordinateFromPoint(entity->position) };
-                    Vec2S32 targetPosition { TileCoordinateFromPoint(virtualWorldPosition) };
+                    if (crop || !cauldron)
+                    {
+                        Vec2S32 startPosition { TileCoordinateFromPoint(entity->position) };
+                        Vec2S32 targetPosition { TileCoordinateFromPoint(virtualWorldPosition) };
 
-                    if (crop)
-                    {
-                        entity->cropTargetId = crop->id;
-                    }
-                    else
-                    {
-                        entity->cropTargetId = 0;
-                    }
-                    entity->path = FindPath(startPosition, targetPosition);
+                        if (crop)
+                        {
+                            entity->cropTargetHandle = crop->handle;
+                        }
+                        else
+                        {
+                            entity->cropTargetHandle.id = 0;
+                            entity->cropTargetHandle.index = 0;
+                        }
+                        entity->path = FindPath(startPosition, targetPosition);
 
-                    if (!entity->path.empty())
-                    {
-                        entity->golemState = GolemState::Pathing;
+                        if (!entity->path.empty())
+                        {
+                            entity->golemState = GolemState::Pathing;
+                        }
                     }
                 }
 
-                if (entity->heldItem)
+                if (entity->heldItem.id != 0)
                 {
                     Entity* cauldron { CauldronFromWorldPosition(virtualWorldPosition) };
 
@@ -602,7 +621,7 @@ namespace Game
             // Update the entities path
             for (auto& entity : gameState.entities)
             {
-                if (entity.type != EntityType::Golem) continue;
+                if (entity.kind != EntityKind::Golem) continue;
                 if (entity.path.empty()) continue;
                 if (entity.golemState != GolemState::Pathing) continue;
 
@@ -623,12 +642,12 @@ namespace Game
                     if (entity.path.empty())
                     {
                         bool stateChanged { false };
-                        Entity* crop { EntityFromId(entity.cropTargetId) };
+                        Entity* crop { EntityFromHandle(entity.cropTargetHandle) };
                         if (crop)
                         {
                             if (TileCoordinateFromPoint(crop->position) == TileCoordinateFromPoint(entity.position))
                             {
-                                if (entity.heldItem == 0 && crop->harvestable && crop->type == EntityType::Crop)
+                                if (entity.heldItem.id == 0 && crop->harvestable && crop->kind == EntityKind::Crop)
                                 {
                                     entity.golemState = GolemState::Harvesting;
                                     stateChanged = true;
@@ -636,12 +655,12 @@ namespace Game
                             }
                         }
 
-                        if (!stateChanged && entity.heldItem != 0)
+                        if (!stateChanged && entity.heldItem.id != 0)
                         {
                             // Check if the golem is next to a cauldron to deposit the item
                             for (const auto& cauldron : gameState.entities)
                             {
-                                if (cauldron.type != EntityType::Cauldron) continue;
+                                if (cauldron.kind != EntityKind::Cauldron) continue;
                                 Vec2S32 cauldronTile { TileCoordinateFromPoint(cauldron.position) };
                                 Vec2S32 golemTile { TileCoordinateFromPoint(entity.position) };
                                 if (golemTile.x >= cauldronTile.x - 1 && golemTile.x <= cauldronTile.x + 2 &&
@@ -668,7 +687,7 @@ namespace Game
             }
 
             {
-                Entity* entity { EntityFromId(gameState.activeEntityId) };
+                Entity* entity { EntityFromHandle(gameState.activeEntityHandle) };
                 // Snap picked entity to tile grid
                 if (entity && entity->path.empty())
                 {
@@ -696,37 +715,36 @@ namespace Game
 
         for (auto& entity : gameState.entities)
         {
-            if (entity.type != EntityType::Golem) continue;
+            if (entity.kind != EntityKind::Golem) continue;
             if (entity.golemState != GolemState::Harvesting) continue;
 
-            Entity* crop { EntityFromId(entity.cropTargetId)};
-            if (crop && crop->harvestable && crop->type == EntityType::Crop)
+            Entity* crop { EntityFromHandle(entity.cropTargetHandle)};
+            if (crop && crop->harvestable && crop->kind == EntityKind::Crop)
             {
                 entity.animationIdx = 1;
                 entity.golemState = GolemState::Idle;
-                crop->markedForDeletion = true;
+                gameState.entities[crop->handle.index] = {};
 
-                Entity daisyItem {};
-                daisyItem.id = gameState.nextEntityId++;
-                daisyItem.type = EntityType::Item;
-                daisyItem.texture = gameState.daisyItemTexture;
-                gameState.entities.push_back(daisyItem);
-
-                entity.heldItem = daisyItem.id;
+                Entity* daisyItem = CreateEntity(EntityKind::Item);
+                if (daisyItem)
+                {
+                    daisyItem->texture = gameState.daisyItemTexture;
+                    entity.heldItem = daisyItem->handle;
+                }
             }
         }
 
         for (auto& entity : gameState.entities)
         {
-            if (entity.type != EntityType::Golem) continue;
+            if (entity.kind != EntityKind::Golem) continue;
             if (entity.golemState != GolemState::Depositing) continue;
 
-            Entity* item { EntityFromId(entity.heldItem) };
+            Entity* item { EntityFromHandle(entity.heldItem) };
             if (item)
             {
-                item->markedForDeletion = true;
+                gameState.entities[entity.heldItem.index] = {};
             }
-            entity.heldItem = 0;
+            entity.heldItem = {};
             entity.animationIdx = 0;
             entity.golemState = GolemState::Idle;
         }
@@ -734,11 +752,10 @@ namespace Game
         // update item positions
         for (auto& entity : gameState.entities)
         {
-            if (entity.heldItem == 0) continue;
+            if (entity.heldItem.id == 0) continue;
             size_t idx { entity.animationIdx };
             
-
-            Entity* daisyItem { EntityFromId(entity.heldItem) };
+            Entity* daisyItem { EntityFromHandle(entity.heldItem) };
             float animationBob { entity.animations[idx].currentFrame ? 2.0f : 0.0f };
             float offsetX { static_cast<float>(daisyItem->texture.width) / 2.0f };
             float offsetY { -(static_cast<float>(daisyItem->texture.height) - 1.0f) + animationBob };
@@ -746,11 +763,6 @@ namespace Game
             daisyItem->position.x = entity.position.x + offsetX;
             daisyItem->position.y = entity.position.y + offsetY;
         }
-
-        std::erase_if(gameState.entities, [](const Entity& entity)
-        {
-            return entity.markedForDeletion;
-        });
     }
 
     void DrawFrame(float deltaTime)
@@ -773,17 +785,19 @@ namespace Game
                     for (int x = startX; x < endX; x++)
                     {
                         Tile tile { g_TileMap[x][y] };
-                        if (tile.type == TileType::None)
+                        if (tile.kind == TileKind::None)
                         {
                             continue;
                         }
                         RectF32 dest { static_cast<float>(x * g_TileSize), static_cast<float>(y * g_TileSize), g_TileSize, g_TileSize };
-                        Renderer::DrawSprite(g_TileTextures[static_cast<size_t>(tile.type)], dest);
+                        Renderer::DrawSprite(g_TileTextures[static_cast<size_t>(tile.kind)], dest);
                     }
                 }
 
                 for (const auto& entity : gameState.entities)
                 {
+                    if (entity.kind == EntityKind::None || entity.kind == EntityKind::Item) continue;
+
                     size_t idx = entity.animationIdx;
                     uint32_t height { entity.animations[idx].frameHeight };
                     uint32_t width { entity.animations[idx].frameWidth };
@@ -805,7 +819,7 @@ namespace Game
 
                 for (const auto& entity : gameState.entities)
                 {
-                    if (entity.type != EntityType::Item) continue;
+                    if (entity.kind != EntityKind::Item) continue;
 
                     RectF32 dest;
                     dest.width = gameState.daisyItemTexture.width;
@@ -816,7 +830,7 @@ namespace Game
                 }
 
                 {
-                    Entity* entity { EntityFromId(gameState.activeEntityId) };
+                    Entity* entity { EntityFromHandle(gameState.activeEntityHandle) };
                     if (entity)
                     {
                         RectF32 dest;

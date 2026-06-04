@@ -8,7 +8,7 @@
 
 
 
-enum class TileType
+enum class TileKind
 {
     None = -1,
     Grass_1,
@@ -18,7 +18,7 @@ enum class TileType
 
 struct Tile
 {
-    TileType type;
+    TileKind kind;
     Vec2S32 position;
 };
 
@@ -26,7 +26,7 @@ static constexpr int g_TileSize { 16 };
 static constexpr int g_TileMapWidth { 160 };
 static constexpr int g_TileMapHeight { 90 };
 static Tile g_TileMap[g_TileMapWidth][g_TileMapHeight];
-static Texture g_TileTextures[4]; // one per TileType
+static Texture g_TileTextures[4]; // one per TileKind
 
 
 enum class GolemState
@@ -37,13 +37,21 @@ enum class GolemState
     Depositing
 };
 
-enum class EntityType
+enum class EntityKind
 {
     None = 0,
     Golem,
     Crop,
     Cauldron,
     Item
+};
+
+enum EntityFlags : uint8_t
+{
+    None = 0,
+    Drawable = 1 << 0,
+    Collidable = 1 << 1,
+    Harvestable = 1 << 2 
 };
 
 struct SpriteAnimation
@@ -63,12 +71,20 @@ struct SpriteAnimation
     uint32_t frameAdvancement { 1 };
 };
 
-using EntityId = uint32_t;
+static constexpr int g_MaxEntities { 1024 };
+
+struct EntityHandle
+{
+    uint64_t id { 0 };
+    size_t index { 0 };
+};
 
 struct Entity
 {
-    EntityId id { 0 };
-    EntityType type;
+    EntityHandle handle;
+    EntityKind kind { EntityKind::None };
+    uint8_t flags { EntityFlags::None };
+
     Texture texture;
 
     Vec2F32 position;
@@ -83,18 +99,31 @@ struct Entity
     uint32_t growthTicks;
     bool harvestable { false };
 
-    bool collidable { false };
     uint32_t collisionWidth { 1 };  // width in tiles
     uint32_t collisionHeight { 1 }; // height in tiles
 
 
     // Ad-hoc farming
     bool cropTaken { false };
-    EntityId cropTargetId { 0 };
-    bool markedForDeletion { false };
-    EntityId heldItem { 0 };
+    EntityHandle cropTargetHandle { 0 };
+    EntityHandle heldItem { 0 };
 
     std::vector<Vec2S32> path;
+
+    inline bool HasFlag(uint32_t flag) const
+    {
+        return (flags & flag) != 0;
+    }
+
+    inline void AddFlag(uint32_t flag)
+    {
+        flags |= flag;
+    }
+
+    inline void RemoveFlag(uint32_t flag)
+    {
+        flags &= ~flag;
+    }
 };
 
 struct GameState
@@ -106,9 +135,9 @@ struct GameState
 
     Camera camera;
 
-    EntityId nextEntityId { 1 };
-    std::vector<Entity> entities;
-    EntityId activeEntityId { 0 };
+    uint64_t nextEntityId { 1 };
+    std::array<Entity, g_MaxEntities> entities;
+    EntityHandle activeEntityHandle { 0 };
 
     // assets
 
