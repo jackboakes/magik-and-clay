@@ -258,6 +258,8 @@ namespace Game
         return{};
     }
 
+    Entity* CreateEntity(EntityKind kind);
+
     void SetupGolem(Entity& entity)
     {
         entity.texture = gameState.golemTexture;
@@ -284,6 +286,154 @@ namespace Game
         entity.animations[0] = idle;
         entity.animations[1] = carrying;
         entity.animationTicks = 0;
+
+        auto GolemUpdate { [](Entity& entity, float deltaTime)
+            {
+                // Animation tick
+                {
+                    size_t idx { entity.animationIdx };
+                    entity.animationTicks++;
+                    U64 frame { (entity.animationTicks / entity.animations[idx].frameAdvancement) % entity.animations[idx].frameCount };
+                    entity.animations[idx].currentFrame = static_cast<U32>(frame);
+                }
+
+                switch (entity.golemState)
+                {
+                case GolemState::Pathing:
+                {
+                    if (!entity.path.empty())
+                    {
+                        Vec2S32 nextTile { entity.path.back() };
+                        Vec2F32 targetPosition { static_cast<F32>(nextTile.x) * g_TileSize, static_cast<F32>(nextTile.y) * g_TileSize };
+
+                        F32 speed { entity.speed * g_TileSize };
+                        F32 step { speed * deltaTime };
+
+                        Vec2F32 delta { targetPosition - entity.position };
+                        F32 distance { std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+
+                        if (distance <= step)
+                        {
+                            entity.position = targetPosition;
+                            entity.path.pop_back();
+
+                            if (entity.path.empty())
+                            {
+                                bool stateChanged { false };
+                                Entity* crop { EntityFromHandle(entity.cropTargetHandle) };
+                                if (crop)
+                                {
+                                    if (TileCoordinateFromPoint(crop->position) == TileCoordinateFromPoint(entity.position))
+                                    {
+                                        if (entity.heldItem.id == 0 && crop->harvestable && crop->kind == EntityKind::Crop)
+                                        {
+                                            entity.golemState = GolemState::Harvesting;
+                                            stateChanged = true;
+                                        }
+                                    }
+                                }
+
+                                if (!stateChanged && entity.heldItem.id != 0)
+                                {
+                                    // Check if the golem is next to a cauldron to deposit the item
+                                    for (const auto& cauldron : gameState.entities)
+                                    {
+                                        if (cauldron.kind != EntityKind::Cauldron) continue;
+                                        Vec2S32 cauldronTile { TileCoordinateFromPoint(cauldron.position) };
+                                        Vec2S32 golemTile { TileCoordinateFromPoint(entity.position) };
+                                        if (golemTile.x >= cauldronTile.x - 1 && golemTile.x <= cauldronTile.x + 2 &&
+                                            golemTile.y >= cauldronTile.y - 1 && golemTile.y <= cauldronTile.y + 2)
+                                        {
+                                            entity.golemState = GolemState::Depositing;
+                                            stateChanged = true;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                if (!stateChanged)
+                                {
+                                    entity.golemState = GolemState::Idle;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            entity.position.x += (delta.x / distance) * step;
+                            entity.position.y += (delta.y / distance) * step;
+                        }
+                    }
+                    else
+                    {
+                        // Snap entity to tile grid
+                        Vec2S32 entityTilePosition { TileCoordinateFromPoint(entity.position) };
+                        Vec2F32 targetPosition { static_cast<F32>(entityTilePosition.x) * g_TileSize, static_cast<F32>(entityTilePosition.y) * g_TileSize };
+
+                        F32 speed { entity.speed * g_TileSize };
+                        F32 step { speed * deltaTime };
+
+                        Vec2F32 delta { targetPosition - entity.position };
+                        F32 distance { std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+
+                        if (distance <= step)
+                        {
+                            entity.position = targetPosition;
+                        }
+                        else
+                        {
+                            entity.position.x += (delta.x / distance) * step;
+                            entity.position.y += (delta.y / distance) * step;
+                        }
+                    }
+                }
+                break;
+                case GolemState::Harvesting:
+                {
+                    Entity* crop { EntityFromHandle(entity.cropTargetHandle) };
+                    if (crop && crop->harvestable && crop->kind == EntityKind::Crop)
+                    {
+                        entity.animationIdx = 1;
+                        entity.golemState = GolemState::Idle;
+                        gameState.entities[crop->handle.index] = {};
+
+                        Entity* daisyItem { CreateEntity(EntityKind::Item) };
+                        if (daisyItem)
+                        {
+                            entity.heldItem = daisyItem->handle;
+                        }
+                    }
+                }
+                break;
+                case GolemState::Depositing:
+                {
+                    Entity* item { EntityFromHandle(entity.heldItem) };
+                    if (item)
+                    {
+                        gameState.entities[entity.heldItem.index] = {};
+                    }
+                    entity.heldItem = {};
+                    entity.animationIdx = 0;
+                    entity.golemState = GolemState::Idle;
+                }
+                break;
+                }
+
+                // update item positions
+                if (entity.heldItem.id != 0)
+                {
+                    size_t idx { entity.animationIdx };
+
+                    Entity* daisyItem { EntityFromHandle(entity.heldItem) };
+                    F32 animationBob { entity.animations[idx].currentFrame ? 2.0f : 0.0f };
+                    F32 offsetX { static_cast<F32>(daisyItem->texture.width) / 2.0f };
+                    F32 offsetY { -(static_cast<F32>(daisyItem->texture.height) - 1.0f) + animationBob };
+
+                    daisyItem->position.x = entity.position.x + offsetX;
+                    daisyItem->position.y = entity.position.y + offsetY;
+                }
+            } };
+
+        entity.update = GolemUpdate;
     }
 
     void SetupCrop(Entity& entity)
@@ -301,6 +451,26 @@ namespace Game
 
         entity.animations[entity.animationIdx] = daisyGrowth;
         entity.animationTicks = 0;
+
+        auto CropUpdate { [](Entity& entity, float deltaTime)
+            {
+                if (entity.growthTicks < 1200)
+                {
+                    // Animation tick
+                    {
+                        size_t idx { entity.animationIdx };
+                        entity.growthTicks++;
+                        S32 stage { static_cast<S32>(entity.growthTicks / 300) };
+                        entity.animations[idx].currentFrame = std::clamp(stage, 0, 3);
+                        if (stage >= 3)
+                        {
+                            entity.harvestable = true;
+                        }
+                    }
+                }
+            } };
+
+        entity.update = CropUpdate;
     }
 
     void SetupCauldron(Entity& entity)
@@ -321,6 +491,25 @@ namespace Game
 
         entity.animations[entity.animationIdx] = cauldronAnimation;
         entity.animationTicks = 0;
+
+        auto CauldronUpdate { [](Entity& entity, float deltaTime)
+            {
+                // Animation tick
+                {
+                    size_t idx { entity.animationIdx };
+                    entity.animationTicks++;
+                    U64 frame { (entity.animationTicks / entity.animations[idx].frameAdvancement) % entity.animations[idx].frameCount };
+                    entity.animations[idx].currentFrame = static_cast<U32>(frame);
+                }
+            } };
+
+        entity.update = CauldronUpdate;
+    }
+    
+    void SetupItem(Entity& entity)
+    {
+        entity.texture = gameState.daisyItemTexture;
+        entity.update = [](Entity&, float) {};
     }
 
     Entity* CreateEntity(EntityKind kind)
@@ -362,6 +551,11 @@ namespace Game
         case EntityKind::Cauldron:
         {
             SetupCauldron(*newEntity);
+        }
+        break;
+        case EntityKind::Item:
+        {
+            SetupItem(*newEntity);
         }
         break;
         }
@@ -435,7 +629,7 @@ namespace Game
     {
         Input::ProcessEvents();
 
-
+        
         if (Input::IsKeyDown(Key::W))
         {
             gameState.camera.position.y -= 5.0f / gameState.camera.zoom;
@@ -496,38 +690,6 @@ namespace Game
 
             gameState.camera.position.x += (previousWorldPosition.x - postZoomWorldPos.x);
             gameState.camera.position.y += (previousWorldPosition.y - postZoomWorldPos.y);
-        }
-
-        for (auto& entity : gameState.entities)
-        {
-            if (entity.kind != EntityKind::Golem) continue;
-            size_t idx { entity.animationIdx };
-            entity.animationTicks++;
-            U64 frame { (entity.animationTicks / entity.animations[idx].frameAdvancement) % entity.animations[idx].frameCount };
-            entity.animations[idx].currentFrame = static_cast<U32>(frame);
-        }
-
-        for (auto& entity : gameState.entities)
-        {
-            if (entity.kind != EntityKind::Cauldron) continue;
-            size_t idx { entity.animationIdx };
-            entity.animationTicks++;
-            U64 frame { (entity.animationTicks / entity.animations[idx].frameAdvancement) % entity.animations[idx].frameCount };
-            entity.animations[idx].currentFrame = static_cast<U32>(frame);
-        }
-
-        for (auto& entity : gameState.entities)
-        {
-            if (entity.kind != EntityKind::Crop) continue;
-            if (entity.growthTicks >= 1200) continue;
-            size_t idx { entity.animationIdx };
-            entity.growthTicks++;
-            S32 stage { static_cast<S32>(entity.growthTicks / 300) };
-            entity.animations[idx].currentFrame = std::clamp(stage, 0, 3);
-            if (stage >= 3)
-            {
-                entity.harvestable = true;
-            }
         }
 
         // Pick the entity
@@ -634,152 +796,10 @@ namespace Game
             }
         }
 
-        // Update entity movement
-        {
-            // Update the entities path
-            for (auto& entity : gameState.entities)
-            {
-                if (entity.kind != EntityKind::Golem) continue;
-                if (entity.path.empty()) continue;
-                if (entity.golemState != GolemState::Pathing) continue;
-
-                Vec2S32 nextTile { entity.path.back() };
-                Vec2F32 targetPosition { static_cast<F32>(nextTile.x) * g_TileSize, static_cast<F32>(nextTile.y) * g_TileSize };
-
-                F32 speed { entity.speed * g_TileSize };
-                F32 step { speed * deltaTime };
-
-                Vec2F32 delta { targetPosition - entity.position };
-                F32 distance { std::sqrt(delta.x * delta.x + delta.y * delta.y) };
-
-                if (distance <= step)
-                {
-                    entity.position = targetPosition;
-                    entity.path.pop_back();
-
-                    if (entity.path.empty())
-                    {
-                        bool stateChanged { false };
-                        Entity* crop { EntityFromHandle(entity.cropTargetHandle) };
-                        if (crop)
-                        {
-                            if (TileCoordinateFromPoint(crop->position) == TileCoordinateFromPoint(entity.position))
-                            {
-                                if (entity.heldItem.id == 0 && crop->harvestable && crop->kind == EntityKind::Crop)
-                                {
-                                    entity.golemState = GolemState::Harvesting;
-                                    stateChanged = true;
-                                }
-                            }
-                        }
-
-                        if (!stateChanged && entity.heldItem.id != 0)
-                        {
-                            // Check if the golem is next to a cauldron to deposit the item
-                            for (const auto& cauldron : gameState.entities)
-                            {
-                                if (cauldron.kind != EntityKind::Cauldron) continue;
-                                Vec2S32 cauldronTile { TileCoordinateFromPoint(cauldron.position) };
-                                Vec2S32 golemTile { TileCoordinateFromPoint(entity.position) };
-                                if (golemTile.x >= cauldronTile.x - 1 && golemTile.x <= cauldronTile.x + 2 &&
-                                    golemTile.y >= cauldronTile.y - 1 && golemTile.y <= cauldronTile.y + 2)
-                                {
-                                    entity.golemState = GolemState::Depositing;
-                                    stateChanged = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!stateChanged)
-                        {
-                            entity.golemState = GolemState::Idle;
-                        }
-                    }
-                }
-                else
-                {
-                    entity.position.x += (delta.x / distance) * step;
-                    entity.position.y += (delta.y / distance) * step;
-                }
-            }
-
-            {
-                Entity* entity { EntityFromHandle(gameState.activeEntityHandle) };
-                // Snap picked entity to tile grid
-                if (entity && entity->path.empty())
-                {
-                    Vec2S32 entityTilePosition { TileCoordinateFromPoint(entity->position) };
-                    Vec2F32 targetPosition { static_cast<F32>(entityTilePosition.x) * g_TileSize, static_cast<F32>(entityTilePosition.y) * g_TileSize };
-
-                    F32 speed { entity->speed * g_TileSize };
-                    F32 step { speed * deltaTime };
-
-                    Vec2F32 delta { targetPosition - entity->position };
-                    F32 distance { std::sqrt(delta.x * delta.x + delta.y * delta.y) };
-
-                    if (distance <= step)
-                    {
-                        entity->position = targetPosition;
-                    }
-                    else
-                    {
-                        entity->position.x += (delta.x / distance) * step;
-                        entity->position.y += (delta.y / distance) * step;
-                    }
-                }
-            }
-        }
-
         for (auto& entity : gameState.entities)
         {
-            if (entity.kind != EntityKind::Golem) continue;
-            if (entity.golemState != GolemState::Harvesting) continue;
-
-            Entity* crop { EntityFromHandle(entity.cropTargetHandle)};
-            if (crop && crop->harvestable && crop->kind == EntityKind::Crop)
-            {
-                entity.animationIdx = 1;
-                entity.golemState = GolemState::Idle;
-                gameState.entities[crop->handle.index] = {};
-
-                Entity* daisyItem = CreateEntity(EntityKind::Item);
-                if (daisyItem)
-                {
-                    daisyItem->texture = gameState.daisyItemTexture;
-                    entity.heldItem = daisyItem->handle;
-                }
-            }
-        }
-
-        for (auto& entity : gameState.entities)
-        {
-            if (entity.kind != EntityKind::Golem) continue;
-            if (entity.golemState != GolemState::Depositing) continue;
-
-            Entity* item { EntityFromHandle(entity.heldItem) };
-            if (item)
-            {
-                gameState.entities[entity.heldItem.index] = {};
-            }
-            entity.heldItem = {};
-            entity.animationIdx = 0;
-            entity.golemState = GolemState::Idle;
-        }
-
-        // update item positions
-        for (auto& entity : gameState.entities)
-        {
-            if (entity.heldItem.id == 0) continue;
-            size_t idx { entity.animationIdx };
-            
-            Entity* daisyItem { EntityFromHandle(entity.heldItem) };
-            F32 animationBob { entity.animations[idx].currentFrame ? 2.0f : 0.0f };
-            F32 offsetX { static_cast<F32>(daisyItem->texture.width) / 2.0f };
-            F32 offsetY { -(static_cast<F32>(daisyItem->texture.height) - 1.0f) + animationBob };
-
-            daisyItem->position.x = entity.position.x + offsetX;
-            daisyItem->position.y = entity.position.y + offsetY;
+            if (entity.kind == EntityKind::None) continue;
+            entity.update(entity, deltaTime);
         }
     }
 
