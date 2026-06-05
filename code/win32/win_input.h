@@ -9,24 +9,24 @@ constexpr auto KeyFromVK()
 {
     std::array<Key, 256> result {};
 
-    for (int i { 'A' }; i <= 'Z'; i++)
+    for (S32 i { 'A' }; i <= 'Z'; i++)
     {
-        result[i] = static_cast<Key>(static_cast<int>(Key::A) + (i - 'A'));
+        result[i] = static_cast<Key>(static_cast<S32>(Key::A) + (i - 'A'));
     }
 
-    for (int i { '0' }; i <= '9'; i++)
+    for (S32 i { '0' }; i <= '9'; i++)
     {
-        result[i] = static_cast<Key>(static_cast<int>(Key::ZERO) + (i - '0'));
+        result[i] = static_cast<Key>(static_cast<S32>(Key::ZERO) + (i - '0'));
     }
 
-    for (int i { VK_NUMPAD0 }; i <= VK_NUMPAD9; i++)
+    for (S32 i { VK_NUMPAD0 }; i <= VK_NUMPAD9; i++)
     {
-        result[i] = static_cast<Key>(static_cast<int>(Key::NUMPAD0) + (i - VK_NUMPAD0));
+        result[i] = static_cast<Key>(static_cast<S32>(Key::NUMPAD0) + (i - VK_NUMPAD0));
     }
 
-    for (int i { VK_F1 }; i <= VK_F12; i++)
+    for (S32 i { VK_F1 }; i <= VK_F12; i++)
     {
-        result[i] = static_cast<Key>(static_cast<int>(Key::F1) + (i - VK_F1));
+        result[i] = static_cast<Key>(static_cast<S32>(Key::F1) + (i - VK_F1));
     }
 
 

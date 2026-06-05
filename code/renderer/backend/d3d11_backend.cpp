@@ -10,8 +10,8 @@
 
 namespace D3D11
 {
-    uint32_t internalDrawCallCount = 0;
-    uint32_t drawCallCount = 0;
+    U32 internalDrawCallCount = 0;
+    U32 drawCallCount = 0;
     Microsoft::WRL::ComPtr<ID3D11Device> device;
     Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
     Microsoft::WRL::ComPtr<ID3D11Debug> debug;
@@ -275,8 +275,8 @@ namespace D3D11
         internalDrawCallCount = 0;
         RectF32 clientRect { W32::ClientRectFromWindow(window.handle) };
 
-        const UINT width { static_cast<UINT>(clientRect.width) };
-        const UINT height { static_cast<UINT>(clientRect.height) };
+        const U32 width { static_cast<U32>(clientRect.width) };
+        const U32 height { static_cast<U32>(clientRect.height) };
 
         bool resolutionChanged { (window.lastWidth != width ||
             window.lastHeight != height) };
@@ -303,9 +303,9 @@ namespace D3D11
 
         // Update viewport
         {
-            UINT width { window.lastWidth };
-            UINT height { window.lastHeight };
-            D3D11_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+            U32 width { window.lastWidth };
+            U32 height { window.lastHeight };
+            D3D11_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<F32>(width), static_cast<F32>(height), 0.0f, 1.0f };
 
             context->OMSetRenderTargets(1, window.view.GetAddressOf(),
                 nullptr);
@@ -348,7 +348,7 @@ namespace D3D11
             size_t i { 0 };
             while (i < pass.sprites.size())
             {
-                uint32_t currentTexture { pass.sprites[i].texture.handle };
+                U32 currentTexture { pass.sprites[i].texture.handle };
                 auto& textureSRV { textureStorage[currentTexture] };
                 context->PSSetShaderResources(0, 1, textureSRV.GetAddressOf());
 
@@ -365,7 +365,7 @@ namespace D3D11
                             HMM_Scale(HMM_V3(sprite.destination.width, sprite.destination.height, 1.0f))
                         );
                         spriteBuffer[batchCount].sourcePos = { sprite.source.x, sprite.source.y };
-                        spriteBuffer[batchCount].textureSize = { (float)sprite.texture.width, (float)sprite.texture.height };
+                        spriteBuffer[batchCount].textureSize = { (F32)sprite.texture.width, (F32)sprite.texture.height };
                         spriteBuffer[batchCount].spriteSize = { sprite.source.width, sprite.source.height };
 
                         batchCount++;
@@ -391,7 +391,7 @@ namespace D3D11
         window.swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
     }
 
-    uint32_t CreateTexture(unsigned char* textureData, int width, int height)
+    U32 CreateTexture(U8* textureData, S32 width, S32 height)
     {
         D3D11_TEXTURE2D_DESC desc{};
         desc.Width = width;
@@ -413,7 +413,7 @@ namespace D3D11
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
         device->CreateShaderResourceView(texture.Get(), nullptr, &srv);
 
-        uint32_t handle { static_cast<uint32_t>(textureStorage.size()) };
+        U32 handle { static_cast<U32>(textureStorage.size()) };
         textureStorage.push_back(srv);
 
         return handle;

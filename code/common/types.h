@@ -1,10 +1,21 @@
 #pragma once
 #include <cstdint>
 
+using U8 = uint8_t;
+using U16 = uint16_t;
+using U32 = uint32_t;
+using U64 = uint64_t;
+using S8 = int8_t;
+using S16 = int16_t;
+using S32 = int32_t;
+using S64 = int64_t;
+using F32 = float;
+using F64 = double;
+
 struct Vec2S32
 {
-    int32_t x;
-    int32_t y;
+    S32 x;
+    S32 y;
 
     Vec2S32 operator+(const Vec2S32& other) const
     {
@@ -24,8 +35,8 @@ struct Vec2S32
 
 struct Vec2F32
 {
-    float x;
-    float y;
+    F32 x;
+    F32 y;
 
     Vec2F32 operator+(const Vec2F32& other) const
     {
@@ -40,10 +51,10 @@ struct Vec2F32
 
 struct RectF32
 {
-    float x;
-    float y;
-    float width;
-    float height;
+    F32 x;
+    F32 y;
+    F32 width;
+    F32 height;
 };
 
 enum class Key

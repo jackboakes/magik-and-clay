@@ -5,6 +5,7 @@
 
 #include "camera/camera.h"
 #include "renderer/renderer.h"
+#include "common/types.h"
 
 
 
@@ -22,9 +23,9 @@ struct Tile
     Vec2S32 position;
 };
 
-static constexpr int g_TileSize { 16 };
-static constexpr int g_TileMapWidth { 160 };
-static constexpr int g_TileMapHeight { 90 };
+static constexpr S32 g_TileSize { 16 };
+static constexpr S32 g_TileMapWidth { 160 };
+static constexpr S32 g_TileMapHeight { 90 };
 static Tile g_TileMap[g_TileMapWidth][g_TileMapHeight];
 static Texture g_TileTextures[4]; // one per TileKind
 
@@ -46,7 +47,7 @@ enum class EntityKind
     Item
 };
 
-enum EntityFlags : uint8_t
+enum EntityFlags : U8
 {
     None = 0,
     Drawable = 1 << 0,
@@ -56,51 +57,51 @@ enum EntityFlags : uint8_t
 
 struct SpriteAnimation
 {
-    uint32_t frameCount { 1 };
-    uint32_t currentFrame;
-    uint32_t frameWidth;
-    uint32_t frameHeight;
-    uint32_t xOffset;
-    uint32_t yOffset;
+    U32 frameCount { 1 };
+    U32 currentFrame;
+    U32 frameWidth;
+    U32 frameHeight;
+    U32 xOffset;
+    U32 yOffset;
     /*
     The number of ticks that advance an animations frame.
     1 means one animation frame per tick, 
     so at 60 ticks/sec that's 60 animation frames per second.
     30 means 30 frames before a new animation frame.
     */ 
-    uint32_t frameAdvancement { 1 };
+    U32 frameAdvancement { 1 };
 };
 
-static constexpr int g_MaxEntities { 1024 };
+static constexpr U32 g_MaxEntities { 1024 };
 
 struct EntityHandle
 {
-    uint64_t id { 0 };
-    size_t index { 0 };
+    U64 id { 0 };
+    U64 index { 0 };
 };
 
 struct Entity
 {
     EntityHandle handle;
     EntityKind kind { EntityKind::None };
-    uint8_t flags { EntityFlags::None };
+    U8 flags { EntityFlags::None };
 
     Texture texture;
 
     Vec2F32 position;
     Vec2F32 targetPosition;
-    float speed; 
+    F32 speed;
     GolemState golemState { GolemState::Idle };
 
     std::array<SpriteAnimation, 2> animations;
     size_t animationIdx { 0 };
-    uint32_t animationTicks;
+    U32 animationTicks;
 
-    uint32_t growthTicks;
+    U32 growthTicks;
     bool harvestable { false };
 
-    uint32_t collisionWidth { 1 };  // width in tiles
-    uint32_t collisionHeight { 1 }; // height in tiles
+    U32 collisionWidth { 1 };  // width in tiles
+    U32 collisionHeight { 1 }; // height in tiles
 
 
     // Ad-hoc farming
@@ -110,17 +111,17 @@ struct Entity
 
     std::vector<Vec2S32> path;
 
-    inline bool HasFlag(uint32_t flag) const
+    inline bool HasFlag(U32 flag) const
     {
         return (flags & flag) != 0;
     }
 
-    inline void AddFlag(uint32_t flag)
+    inline void AddFlag(U32 flag)
     {
         flags |= flag;
     }
 
-    inline void RemoveFlag(uint32_t flag)
+    inline void RemoveFlag(U32 flag)
     {
         flags &= ~flag;
     }
@@ -128,14 +129,14 @@ struct Entity
 
 struct GameState
 {
-    float virtualScreenWidth;
-    const float virtualScreenHeight { 360.f };
+    F32 virtualScreenWidth;
+    const F32 virtualScreenHeight { 360.f };
 
-    uint64_t tick;
+    U64 tick;
 
     Camera camera;
 
-    uint64_t nextEntityId { 1 };
+    U64 nextEntityId { 1 };
     std::array<Entity, g_MaxEntities> entities;
     EntityHandle activeEntityHandle { 0 };
 
@@ -157,7 +158,7 @@ namespace Game
     void LoadTileMap(std::filesystem::path path);
 
     void Init();
-    void Update(float deltaTime);
-    void DrawFrame(float deltaTime);
-    void UpdateAndDrawFrame(float deltaTime);
+    void Update(F32 deltaTime);
+    void DrawFrame(F32 deltaTime);
+    void UpdateAndDrawFrame(F32 deltaTime);
 }

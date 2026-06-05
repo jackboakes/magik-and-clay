@@ -18,18 +18,18 @@
 
 namespace Renderer
 {
-    static float s_width;
-    static float s_height;
+    static F32 s_width;
+    static F32 s_height;
     static std::vector<RenderPass> s_passes;
     static RenderPass* s_activePass { nullptr };
-    static uint64_t endCurrentFrameTime { 0 };
-    static uint64_t endPreviousFrameTime { 0 };
-    static int fps { 0 };
+    static U64 endCurrentFrameTime { 0 };
+    static U64 endPreviousFrameTime { 0 };
+    static S32 fps { 0 };
 
-    void WindowCreate(int width, int height, std::wstring_view title)
+    void WindowCreate(S32 width, S32 height, std::wstring_view title)
     {
-        s_width = static_cast<float>(width);
-        s_height = static_cast<float>(height);
+        s_width = static_cast<F32>(width);
+        s_height = static_cast<F32>(height);
 
         D3D11::window.handle = W32::WindowCreate(width, height, title);
         if (!D3D11::window.handle)
@@ -44,7 +44,7 @@ namespace Renderer
         ShowWindow(D3D11::window.handle, SW_SHOW);
     }
 
-    int GetFPS()
+    S32 GetFPS()
     {
         return fps;
     }
@@ -104,14 +104,14 @@ namespace Renderer
         // TODO:: logging
     }
 
-    Font LoadFont(std::filesystem::path filePath, float size)
+    Font LoadFont(std::filesystem::path filePath, F32 size)
     {
         auto fontData { LoadFileBinary(filePath) };
 
         stbtt_fontinfo fontInfo;
         stbtt_InitFont(&fontInfo, reinterpret_cast<const unsigned char*>(fontData->data()), 0);
 
-        float scale { stbtt_ScaleForMappingEmToPixels(&fontInfo, size) };
+        F32 scale { stbtt_ScaleForMappingEmToPixels(&fontInfo, size) };
 
         int ascent, descent, lineGap;
         stbtt_GetFontVMetrics(&fontInfo, &ascent, &descent, &lineGap);
@@ -129,14 +129,14 @@ namespace Renderer
 
 
         Font font;
-        font.size = static_cast<int>((ascent - descent) * scale);
+        font.size = static_cast<S32>((ascent - descent) * scale);
         font.lineHeight = (ascent - descent + lineGap) * scale;
 
-        for (int i { 0 }; i < g_fontCharCount; i++)
+        for (S32 i { 0 }; i < g_fontCharCount; i++)
         {
             stbtt_aligned_quad quad;
 
-            float cx { 0 }, cy { 0 };
+            F32 cx { 0 }, cy { 0 };
 
             stbtt_GetPackedQuad(packedChars.data(), g_fontAtlasWidth, g_fontAtlasHeight, i, &cx, &cy, &quad, 1);
             font.glyphs[i].source = { quad.s0 * g_fontAtlasWidth, quad.t0 * g_fontAtlasHeight, (quad.s1 - quad.s0) * g_fontAtlasWidth, (quad.t1 - quad.t0) * g_fontAtlasHeight };
@@ -146,7 +146,7 @@ namespace Renderer
         }
 
         // NOTE:: Need to add space manually since it's glyph doesn't have visible pixels for stbtt_PackFontRange atlas
-        int spaceIndex { ' ' - g_fontFirstChar };
+        S32 spaceIndex { ' ' - g_fontFirstChar };
         int advanceWidth;
         int leftBearing;
         stbtt_GetCodepointHMetrics(&fontInfo, ' ', &advanceWidth, &leftBearing);
@@ -154,7 +154,7 @@ namespace Renderer
 
         // Handover atlas to GPU
         std::vector<unsigned char> rgba(g_fontAtlasWidth * g_fontAtlasHeight * 4);
-        for (int i = 0; i < g_fontAtlasWidth * g_fontAtlasHeight; i++)
+        for (S32 i = 0; i < g_fontAtlasWidth * g_fontAtlasHeight; i++)
         {
             rgba[i * 4 + 0] = 255;
             rgba[i * 4 + 1] = 255;
@@ -169,12 +169,12 @@ namespace Renderer
         return font;
     }
 
-    void DrawText(const Font& font, std::string_view text, float x, float y, int size)
+    void DrawText(const Font& font, std::string_view text, F32 x, F32 y, S32 size)
     {
-        float scale { static_cast<float>(size) / static_cast<float>(font.size) };
+        F32 scale { static_cast<F32>(size) / static_cast<F32>(font.size) };
 
-        float textOffsetX { x };
-        float textOffsetY { y };
+        F32 textOffsetX { x };
+        F32 textOffsetY { y };
 
         for (const char ch : text)
         {
@@ -197,7 +197,7 @@ namespace Renderer
         }
     }
 
-    void BeginFrame(float width, float height)
+    void BeginFrame(F32 width, F32 height)
     {
         s_width = width;
         s_height = height;
@@ -245,17 +245,17 @@ namespace Renderer
         endPreviousFrameTime = endCurrentFrameTime;
         endCurrentFrameTime = W32::TimeMicroseconds();
 
-        uint64_t frameTimeMicroseconds { endCurrentFrameTime - endPreviousFrameTime };
+        U64 frameTimeMicroseconds { endCurrentFrameTime - endPreviousFrameTime };
 
-        static int frameCount { 0 };
-        static uint64_t accumulatedTime { 0 };
+        static S32 frameCount { 0 };
+        static U64 accumulatedTime { 0 };
 
         accumulatedTime += (endCurrentFrameTime - endPreviousFrameTime);
         frameCount++;
 
         if (accumulatedTime >= 500000) // update every 0.5s
         {
-            fps = static_cast<int>(frameCount * 1000000.0 / accumulatedTime);
+            fps = static_cast<S32>(frameCount * 1000000.0 / accumulatedTime);
             frameCount = 0;
             accumulatedTime = 0;
         }

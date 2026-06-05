@@ -4,7 +4,6 @@
 #include "camera/camera.h"
 
 #include <string_view>
-#include <cstdint>
 #include <vector>
 #include <array>
 #include <filesystem>
@@ -12,9 +11,9 @@
 // opaque handle for texture
 struct Texture 
 { 
-    uint32_t handle;
-    int width;
-    int height;
+    U32 handle;
+    S32 width;
+    S32 height;
 };
 
 struct SpriteInstance
@@ -33,30 +32,30 @@ struct RenderPass
 struct Glyph
 {
     RectF32 source;
-    float   offsetX;
-    float   offsetY;
-    float   advanceX;
+    F32     offsetX;
+    F32     offsetY;
+    F32     advanceX;
 };
 
 // TODO:: This is not shippable but it works for now
-constexpr int g_fontAtlasWidth = 256;
-constexpr int g_fontAtlasHeight = 256;
-constexpr int g_fontFirstChar = ' ';   // space
-constexpr int g_fontCharCount = '~' - ' ' + 1;   // ASCII 32..126
+constexpr S32 g_fontAtlasWidth = 256;
+constexpr S32 g_fontAtlasHeight = 256;
+constexpr S32 g_fontFirstChar = ' ';   // space
+constexpr S32 g_fontCharCount = '~' - ' ' + 1;   // ASCII 32..126
 
 struct Font
 {
     Texture atlas;
-    int     size;
-    float   lineHeight;
+    S32     size;
+    F32     lineHeight;
     std::array<Glyph, g_fontCharCount> glyphs;
 };
 
 namespace Renderer
 {
-    void WindowCreate(int width, int height, std::wstring_view title);
+    void WindowCreate(S32 width, S32 height, std::wstring_view title);
 
-    int GetFPS();
+    S32 GetFPS();
 
     RectF32 GetScreenRect();
 
@@ -65,10 +64,10 @@ namespace Renderer
     void DrawSprite(Texture texture, const RectF32& destination);
     void DrawSprite(Texture texture, const RectF32& destination, const RectF32& source);
 
-    Font LoadFont(std::filesystem::path filePath, float size);
-    void DrawText(const Font& font, std::string_view text, float x, float y, int size);
+    Font LoadFont(std::filesystem::path filePath, F32 size);
+    void DrawText(const Font& font, std::string_view text, F32 x, F32 y, S32 size);
 
-    void BeginFrame(float width, float height);
+    void BeginFrame(F32 width, F32 height);
     
     void BeginModeScreenSpace();
     void BeginModeWorldSpace(const Camera& camera);

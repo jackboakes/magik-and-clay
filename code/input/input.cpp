@@ -67,9 +67,9 @@ namespace Input
             keyStatePrevious[static_cast<size_t>(key)];
     }
 
-    float GetScrollDelta()
+    F32 GetScrollDelta()
     {
-        float delta = scrollDelta;
+        F32 delta = scrollDelta;
         scrollDelta = 0.0f;
         return delta;
     }

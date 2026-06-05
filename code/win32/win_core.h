@@ -25,10 +25,10 @@ namespace W32
 
     LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     // TODO:: Pass in a rect type?
-    HWND WindowCreate(int width, int height, std::wstring_view title);
+    HWND WindowCreate(S32 width, S32 height, std::wstring_view title);
 
     RectF32 ClientRectFromWindow(const HWND handle);
 
-    uint64_t TimeMicroseconds();
-    double TimeSeconds();
+    U64 TimeMicroseconds();
+    F64 TimeSeconds();
 }

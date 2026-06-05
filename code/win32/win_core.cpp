@@ -44,8 +44,8 @@ namespace W32
             SysEvent event;
             event.type = mouseIsDown ? SysEventType::KEY_PRESS : SysEventType::KEY_RELEASE;
             event.key = key;
-            event.position.x = (float)(short)LOWORD(lParam);
-            event.position.y = (float)(short)HIWORD(lParam);
+            event.position.x = (F32)(short)LOWORD(lParam);
+            event.position.y = (F32)(short)HIWORD(lParam);
 
             Input::QueueSysEvent(event);
         }
@@ -57,8 +57,8 @@ namespace W32
 
             event.type = SysEventType::MOUSE_MOVE;
             event.key = Key::NONE;
-            event.position.x = (float)(short)LOWORD(lParam);
-            event.position.y = (float)(short)HIWORD(lParam);
+            event.position.x = (F32)(short)LOWORD(lParam);
+            event.position.y = (F32)(short)HIWORD(lParam);
 
             Input::QueueSysEvent(event);
         }
@@ -102,9 +102,9 @@ namespace W32
             event.type = SysEventType::MOUSE_SCROLL;
             event.key = Key::NONE;
             event.scroll.x = 0;
-            event.scroll.y = (float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA;
-            event.position.x = (float)(short)LOWORD(lParam);
-            event.position.y = (float)(short)HIWORD(lParam);
+            event.scroll.y = (F32)GET_WHEEL_DELTA_WPARAM(wParam) / (F32)WHEEL_DELTA;
+            event.position.x = (F32)(short)LOWORD(lParam);
+            event.position.y = (F32)(short)HIWORD(lParam);
             Input::QueueSysEvent(event);
         }
         break;
@@ -120,7 +120,7 @@ namespace W32
     }
 
     // TODO:: Pass in a rect type?
-    HWND WindowCreate(int width, int height, std::wstring_view title)
+    HWND WindowCreate(S32 width, S32 height, std::wstring_view title)
     {
         HINSTANCE hInstance = GetModuleHandleW(0);
 
@@ -165,31 +165,31 @@ namespace W32
 
         if (GetClientRect(handle, &clientRect))
         {
-            UINT width = clientRect.right - clientRect.left;
-            UINT height = clientRect.bottom - clientRect.top;
+            U32 width = clientRect.right - clientRect.left;
+            U32 height = clientRect.bottom - clientRect.top;
 
-            result.width = static_cast<float>(width);
-            result.height = static_cast<float>(height);
-            result.x = static_cast<float>(clientRect.left);
-            result.y = static_cast<float>(clientRect.top);
+            result.width = static_cast<F32>(width);
+            result.height = static_cast<F32>(height);
+            result.x = static_cast<F32>(clientRect.left);
+            result.y = static_cast<F32>(clientRect.top);
         }
 
         return result;
     }
 
-    uint64_t TimeMicroseconds()
+    U64 TimeMicroseconds()
     {
         LARGE_INTEGER currentTime;
         QueryPerformanceCounter(&currentTime);
-        double timeInSeconds { static_cast<double>(currentTime.QuadPart) / static_cast<double>(frequency.QuadPart) };
-        return static_cast<uint64_t>(timeInSeconds * 1000000.0);
+        F64 timeInSeconds { static_cast<F64>(currentTime.QuadPart) / static_cast<F64>(frequency.QuadPart) };
+        return static_cast<U64>(timeInSeconds * 1000000.0);
     }
 
-    double TimeSeconds()
+    F64 TimeSeconds()
     {
         LARGE_INTEGER currentTime;
         QueryPerformanceCounter(&currentTime);
-        double timeInSeconds { static_cast<double>(currentTime.QuadPart) / static_cast<double>(frequency.QuadPart) };
+        F64 timeInSeconds { static_cast<F64>(currentTime.QuadPart) / static_cast<F64>(frequency.QuadPart) };
         return timeInSeconds;
     }
 }

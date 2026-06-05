@@ -21,15 +21,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     Game::Init();
 
-    double deltaTime { 1.0 / 60.0 };
-    double accumulator { 0.0 };
+    F64 deltaTime { 1.0 / 60.0 };
+    F64 accumulator { 0.0 };
 
-    double currentTime { W32::TimeSeconds() };
+    F64 currentTime { W32::TimeSeconds() };
 
     while (W32::running)
     {
-        double newTime { W32::TimeSeconds() };
-        double frameTime { newTime - currentTime };
+        F64 newTime { W32::TimeSeconds() };
+        F64 frameTime { newTime - currentTime };
         currentTime = newTime;
         if (frameTime > 0.25)
         {

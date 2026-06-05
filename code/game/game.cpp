@@ -18,8 +18,8 @@ namespace Game
     Vec2S32 TileCoordinateFromPoint(const Vec2F32 point)
     {
         Vec2S32 gridCoordinate;
-        gridCoordinate.x = static_cast<int32_t>(std::floorf(point.x / g_TileSize));
-        gridCoordinate.y = static_cast<int32_t>(std::floorf(point.y / g_TileSize));
+        gridCoordinate.x = static_cast<S32>(std::floorf(point.x / g_TileSize));
+        gridCoordinate.y = static_cast<S32>(std::floorf(point.y / g_TileSize));
         return gridCoordinate;
     }
 
@@ -49,7 +49,7 @@ namespace Game
         {
             if (entity.kind != EntityKind::Golem) continue;
             size_t idx = entity.animationIdx;
-            RectF32 entityRect { entity.position.x, entity.position.y, static_cast<float>(entity.animations[idx].frameWidth), static_cast<float>(entity.animations[idx].frameHeight) };
+            RectF32 entityRect { entity.position.x, entity.position.y, static_cast<F32>(entity.animations[idx].frameWidth), static_cast<F32>(entity.animations[idx].frameHeight) };
             if (CheckCollisionPointInRect(position, entityRect))
             {
                 return &entity;
@@ -65,7 +65,7 @@ namespace Game
         {
             if (entity.kind != EntityKind::Crop) continue;
             size_t idx { entity.animationIdx };
-            RectF32 entityRect { entity.position.x, entity.position.y, static_cast<float>(entity.animations[idx].frameWidth), static_cast<float>(entity.animations[idx].frameHeight) };
+            RectF32 entityRect { entity.position.x, entity.position.y, static_cast<F32>(entity.animations[idx].frameWidth), static_cast<F32>(entity.animations[idx].frameHeight) };
             if (CheckCollisionPointInRect(position, entityRect))
             {
                 return &entity;
@@ -81,7 +81,7 @@ namespace Game
         {
             if (entity.kind != EntityKind::Cauldron) continue;
             size_t idx = entity.animationIdx;
-            RectF32 entityRect { entity.position.x, entity.position.y, static_cast<float>(entity.animations[idx].frameWidth), static_cast<float>(entity.animations[idx].frameHeight) };
+            RectF32 entityRect { entity.position.x, entity.position.y, static_cast<F32>(entity.animations[idx].frameWidth), static_cast<F32>(entity.animations[idx].frameHeight) };
             if (CheckCollisionPointInRect(position, entityRect))
             {
                 return &entity;
@@ -135,8 +135,8 @@ namespace Game
         std::ifstream file;
         file.open(path);
 
-        int x { 0 };
-        int y { 0 };
+        S32 x { 0 };
+        S32 y { 0 };
 
         std::string line;
 
@@ -174,8 +174,8 @@ namespace Game
     {
         struct Node
         {
-            int cost;
-            int heuristic;
+            S32 cost;
+            S32 heuristic;
             Vec2S32 position;
 
             bool operator>(const Node& other) const
@@ -196,10 +196,10 @@ namespace Game
 
         Vec2S32 cameFrom[g_TileMapWidth][g_TileMapHeight] = {};
 
-        int costSoFar[g_TileMapWidth][g_TileMapHeight] = {};
+        S32 costSoFar[g_TileMapWidth][g_TileMapHeight] = {};
         costSoFar[start.x][start.y] = 0;
 
-        auto Heuristic { [](Vec2S32 start, Vec2S32 target) -> int
+        auto Heuristic { [](Vec2S32 start, Vec2S32 target) -> S32
             {
                 Vec2S32 delta { std::abs(start.x - target.x), std::abs(start.y - target.y) };
                 return 10 * (delta.x + delta.y) + (-6) * std::min(delta.x, delta.y);
@@ -228,10 +228,10 @@ namespace Game
 
             std::vector<Vec2S32> delta { {0, -1}, {1, -1,}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1} };
 
-            for (int i { 0 }; i < 8; i++)
+            for (S32 i { 0 }; i < 8; i++)
             {
-                int neighbourX { current.position.x + delta[i].x };
-                int neighbourY { current.position.y + delta[i].y };
+                S32 neighbourX { current.position.x + delta[i].x };
+                S32 neighbourY { current.position.y + delta[i].y };
 
                 if (neighbourX < 0 || neighbourX >= g_TileMapWidth ||
                     neighbourY < 0 || neighbourY >= g_TileMapHeight)
@@ -244,14 +244,14 @@ namespace Game
                     continue;
                 }
 
-                int moveCost { (delta[i].x && delta[i].y) ? 14 : 10 };
-                int newCost { costSoFar[current.position.x][current.position.y] + moveCost };
+                S32 moveCost { (delta[i].x && delta[i].y) ? 14 : 10 };
+                S32 newCost { costSoFar[current.position.x][current.position.y] + moveCost };
 
                 if (!reached[neighbourX][neighbourY] || newCost < costSoFar[neighbourX][neighbourY])
                 {
                     costSoFar[neighbourX][neighbourY] = newCost;
-                    int heuristic { Heuristic({ neighbourX, neighbourY }, target) };
-                    int cost { newCost + heuristic };
+                    S32 heuristic { Heuristic({ neighbourX, neighbourY }, target) };
+                    S32 cost { newCost + heuristic };
                     frontier.push({ cost, heuristic, {neighbourX, neighbourY} });
                     reached[neighbourX][neighbourY] = true;
                     cameFrom[neighbourX][neighbourY] = current.position;
@@ -337,7 +337,7 @@ namespace Game
             carrying.frameAdvancement = 30;
 
             golem->animationIdx = 0;
-            golem->animations[static_cast<int>(GolemState::Idle)] = idle;
+            golem->animations[static_cast<S32>(GolemState::Idle)] = idle;
             golem->animations[0] = idle; // carrying animation is tied to bool and not state
             golem->animations[1] = carrying;
         }
@@ -383,7 +383,7 @@ namespace Game
             if (daisy)
             {
                 daisy->texture = daisyAtlas;
-                daisy->position = { location.x * static_cast<float>(g_TileSize), location.y * static_cast<float>(g_TileSize) };
+                daisy->position = { location.x * static_cast<F32>(g_TileSize), location.y * static_cast<F32>(g_TileSize) };
                 daisy->animations[0] = daisyGrowth;
                 daisy->animationTicks = 0;
                 daisy->growthTicks = 0;
@@ -391,7 +391,7 @@ namespace Game
         }
     }
 
-    void Update(float deltaTime)
+    void Update(F32 deltaTime)
     {
         Input::ProcessEvents();
 
@@ -425,7 +425,7 @@ namespace Game
                 if (golem)
                 {
                     golem->texture = gameState.golemTexture;
-                    golem->position = { static_cast<float>(gridPosition.x) * g_TileSize, static_cast<float>(gridPosition.y) * g_TileSize };
+                    golem->position = { static_cast<F32>(gridPosition.x) * g_TileSize, static_cast<F32>(gridPosition.y) * g_TileSize };
                     golem->targetPosition = golem->position;
                     golem->speed = 3.0f;
                     SpriteAnimation idle {};
@@ -445,7 +445,7 @@ namespace Game
                     carrying.yOffset = 48;
                     carrying.frameAdvancement = 30;
 
-                    golem->animations[static_cast<int>(GolemState::Idle)] = idle;
+                    golem->animations[static_cast<S32>(GolemState::Idle)] = idle;
                     golem->animations[0] = idle; // carrying animation is tied to bool and not state
                     golem->animations[1] = carrying;
                 }
@@ -458,11 +458,11 @@ namespace Game
         }
 
         RectF32 screenRect { Renderer::GetScreenRect() };
-        float aspectRatio { screenRect.width / screenRect.height };
+        F32 aspectRatio { screenRect.width / screenRect.height };
         gameState.virtualScreenWidth =  gameState.virtualScreenHeight * aspectRatio;
         gameState.camera.offset = { gameState.virtualScreenWidth * 0.5f, gameState.virtualScreenHeight * 0.5f };
 
-        float scrollWheelDelta { Input::GetScrollDelta() };
+        F32 scrollWheelDelta { Input::GetScrollDelta() };
         if (scrollWheelDelta != 0.0f)
         {
             Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };
@@ -485,8 +485,8 @@ namespace Game
             if (entity.kind != EntityKind::Golem) continue;
             size_t idx { entity.animationIdx };
             entity.animationTicks++;
-            uint64_t frame { (entity.animationTicks / entity.animations[idx].frameAdvancement) % entity.animations[idx].frameCount };
-            entity.animations[idx].currentFrame = static_cast<uint32_t>(frame);
+            U64 frame { (entity.animationTicks / entity.animations[idx].frameAdvancement) % entity.animations[idx].frameCount };
+            entity.animations[idx].currentFrame = static_cast<U32>(frame);
         }
 
         for (auto& entity : gameState.entities)
@@ -494,8 +494,8 @@ namespace Game
             if (entity.kind != EntityKind::Cauldron) continue;
             size_t idx { entity.animationIdx };
             entity.animationTicks++;
-            uint64_t frame { (entity.animationTicks / entity.animations[idx].frameAdvancement) % entity.animations[idx].frameCount };
-            entity.animations[idx].currentFrame = static_cast<uint32_t>(frame);
+            U64 frame { (entity.animationTicks / entity.animations[idx].frameAdvancement) % entity.animations[idx].frameCount };
+            entity.animations[idx].currentFrame = static_cast<U32>(frame);
         }
 
         for (auto& entity : gameState.entities)
@@ -504,7 +504,7 @@ namespace Game
             if (entity.growthTicks >= 1200) continue;
             size_t idx { entity.animationIdx };
             entity.growthTicks++;
-            int stage { static_cast<int>(entity.growthTicks / 300) };
+            S32 stage { static_cast<S32>(entity.growthTicks / 300) };
             entity.animations[idx].currentFrame = std::clamp(stage, 0, 3);
             if (stage >= 3)
             {
@@ -579,19 +579,19 @@ namespace Game
                             } };
 
                         Vec2S32 bestTile {};
-                        float bestDistance { std::numeric_limits<float>::max() };
+                        F32 bestDistance { std::numeric_limits<F32>::max() };
 
-                        for (int x = cauldronTile.x - 1; x <= cauldronTile.x + 2; x++)
+                        for (S32 x = cauldronTile.x - 1; x <= cauldronTile.x + 2; x++)
                         {
-                            for (int y = cauldronTile.y - 1; y <= cauldronTile.y + 2; y++)
+                            for (S32 y = cauldronTile.y - 1; y <= cauldronTile.y + 2; y++)
                             {
                                 Vec2S32 candidate { x, y };
 
                                 if (IsCauldronTile(candidate)) continue;
 
-                                float dx { static_cast<float>(entityTile.x - x) };
-                                float dy { static_cast<float>(entityTile.y - y) };
-                                float distSq { (dx * dx) + (dy * dy) };
+                                F32 dx { static_cast<F32>(entityTile.x - x) };
+                                F32 dy { static_cast<F32>(entityTile.y - y) };
+                                F32 distSq { (dx * dx) + (dy * dy) };
 
                                 if (distSq < bestDistance)
                                 {
@@ -626,13 +626,13 @@ namespace Game
                 if (entity.golemState != GolemState::Pathing) continue;
 
                 Vec2S32 nextTile { entity.path.back() };
-                Vec2F32 targetPosition { static_cast<float>(nextTile.x) * g_TileSize, static_cast<float>(nextTile.y) * g_TileSize };
+                Vec2F32 targetPosition { static_cast<F32>(nextTile.x) * g_TileSize, static_cast<F32>(nextTile.y) * g_TileSize };
 
-                float speed { entity.speed * g_TileSize };
-                float step { speed * deltaTime };
+                F32 speed { entity.speed * g_TileSize };
+                F32 step { speed * deltaTime };
 
                 Vec2F32 delta { targetPosition - entity.position };
-                float distance { std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+                F32 distance { std::sqrt(delta.x * delta.x + delta.y * delta.y) };
 
                 if (distance <= step)
                 {
@@ -692,13 +692,13 @@ namespace Game
                 if (entity && entity->path.empty())
                 {
                     Vec2S32 entityTilePosition { TileCoordinateFromPoint(entity->position) };
-                    Vec2F32 targetPosition { static_cast<float>(entityTilePosition.x) * g_TileSize, static_cast<float>(entityTilePosition.y) * g_TileSize };
+                    Vec2F32 targetPosition { static_cast<F32>(entityTilePosition.x) * g_TileSize, static_cast<F32>(entityTilePosition.y) * g_TileSize };
 
-                    float speed { entity->speed * g_TileSize };
-                    float step { speed * deltaTime };
+                    F32 speed { entity->speed * g_TileSize };
+                    F32 step { speed * deltaTime };
 
                     Vec2F32 delta { targetPosition - entity->position };
-                    float distance { std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+                    F32 distance { std::sqrt(delta.x * delta.x + delta.y * delta.y) };
 
                     if (distance <= step)
                     {
@@ -756,16 +756,16 @@ namespace Game
             size_t idx { entity.animationIdx };
             
             Entity* daisyItem { EntityFromHandle(entity.heldItem) };
-            float animationBob { entity.animations[idx].currentFrame ? 2.0f : 0.0f };
-            float offsetX { static_cast<float>(daisyItem->texture.width) / 2.0f };
-            float offsetY { -(static_cast<float>(daisyItem->texture.height) - 1.0f) + animationBob };
+            F32 animationBob { entity.animations[idx].currentFrame ? 2.0f : 0.0f };
+            F32 offsetX { static_cast<F32>(daisyItem->texture.width) / 2.0f };
+            F32 offsetY { -(static_cast<F32>(daisyItem->texture.height) - 1.0f) + animationBob };
 
             daisyItem->position.x = entity.position.x + offsetX;
             daisyItem->position.y = entity.position.y + offsetY;
         }
     }
 
-    void DrawFrame(float deltaTime)
+    void DrawFrame(F32 deltaTime)
     {
         Renderer::BeginFrame(gameState.virtualScreenWidth, gameState.virtualScreenHeight);
 
@@ -774,22 +774,22 @@ namespace Game
                 Vec2F32 minWorld { WorldFromScreen({ 0, 0 }, gameState.camera) };
                 Vec2F32 maxWorld { WorldFromScreen({ gameState.virtualScreenWidth, gameState.virtualScreenHeight }, gameState.camera) };
 
-                static constexpr float invTileSize { 1.0f / g_TileSize };
-                int startX { std::clamp(static_cast<int>(floorf(minWorld.x * invTileSize)), 0, g_TileMapWidth) };
-                int startY { std::clamp(static_cast<int>(floorf(minWorld.y * invTileSize)), 0, g_TileMapHeight) };
-                int endX { std::clamp(static_cast<int>(ceilf(maxWorld.x * invTileSize)), 0, g_TileMapWidth) };
-                int endY { std::clamp(static_cast<int>(ceilf(maxWorld.y * invTileSize)), 0, g_TileMapHeight) };
+                static constexpr F32 invTileSize { 1.0f / g_TileSize };
+                S32 startX { std::clamp(static_cast<S32>(floorf(minWorld.x * invTileSize)), 0, g_TileMapWidth) };
+                S32 startY { std::clamp(static_cast<S32>(floorf(minWorld.y * invTileSize)), 0, g_TileMapHeight) };
+                S32 endX { std::clamp(static_cast<S32>(ceilf(maxWorld.x * invTileSize)), 0, g_TileMapWidth) };
+                S32 endY { std::clamp(static_cast<S32>(ceilf(maxWorld.y * invTileSize)), 0, g_TileMapHeight) };
 
-                for (int y = startY; y < endY; y++)
+                for (S32 y = startY; y < endY; y++)
                 {
-                    for (int x = startX; x < endX; x++)
+                    for (S32 x = startX; x < endX; x++)
                     {
                         Tile tile { g_TileMap[x][y] };
                         if (tile.kind == TileKind::None)
                         {
                             continue;
                         }
-                        RectF32 dest { static_cast<float>(x * g_TileSize), static_cast<float>(y * g_TileSize), g_TileSize, g_TileSize };
+                        RectF32 dest { static_cast<F32>(x * g_TileSize), static_cast<F32>(y * g_TileSize), g_TileSize, g_TileSize };
                         Renderer::DrawSprite(g_TileTextures[static_cast<size_t>(tile.kind)], dest);
                     }
                 }
@@ -799,8 +799,8 @@ namespace Game
                     if (entity.kind == EntityKind::None || entity.kind == EntityKind::Item) continue;
 
                     size_t idx = entity.animationIdx;
-                    uint32_t height { entity.animations[idx].frameHeight };
-                    uint32_t width { entity.animations[idx].frameWidth };
+                    U32 height { entity.animations[idx].frameHeight };
+                    U32 width { entity.animations[idx].frameWidth };
 
                     RectF32 source { 0 };
                     source.width = width;
@@ -866,7 +866,7 @@ namespace Game
                     if (golem)
                     {
                         size_t idx { golem->animationIdx };
-                        RectF32 entityRect { golem->position.x, golem->position.y, static_cast<float>(golem->animations[idx].frameWidth), static_cast<float>(golem->animations[idx].frameHeight) };
+                        RectF32 entityRect { golem->position.x, golem->position.y, static_cast<F32>(golem->animations[idx].frameWidth), static_cast<F32>(golem->animations[idx].frameHeight) };
                         if (CheckCollisionPointInRect(virtualWorldPosition, entityRect))
                         {
                             Renderer::DrawText(gameState.font1, "Hovered", virtualMousePosition.x, virtualMousePosition.y, gameState.font1.size);
@@ -879,7 +879,7 @@ namespace Game
         Renderer::EndFrame();
     }
 
-    void UpdateAndDrawFrame(float deltaTime)
+    void UpdateAndDrawFrame(F32 deltaTime)
     {
         gameState.tick++;
 

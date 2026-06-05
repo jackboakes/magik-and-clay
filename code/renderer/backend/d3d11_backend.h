@@ -13,8 +13,8 @@
 
 #include <vector>
 
-constexpr float g_NearPlane { -1.0f };
-constexpr float g_FarPlane { 1.0f };
+constexpr F32 g_NearPlane { -1.0f };
+constexpr F32 g_FarPlane { 1.0f };
 
 struct InstanceData
 {
@@ -35,8 +35,8 @@ struct Constants
 
 struct Vertex
 {
-    float position[3];
-    float uv[2];
+    F32 position[3];
+    F32 uv[2];
 };
 
 // Pivot point is top left like raylib
@@ -50,7 +50,7 @@ constexpr Vertex vertices[] =
     {0.0f, 1.0f, 0.0f,  0.0f, 1.0f},  // bottom left
 };
 
-constexpr uint16_t indices[] =
+constexpr U16 indices[] =
 {
     0, 1, 2, // t1
     0, 2, 3 // t2
@@ -60,8 +60,8 @@ constexpr uint16_t indices[] =
 namespace D3D11
 {
 
-    extern uint32_t internalDrawCallCount;
-    extern uint32_t drawCallCount;
+    extern U32 internalDrawCallCount;
+    extern U32 drawCallCount;
 
     extern Microsoft::WRL::ComPtr<ID3D11Device> device;
     extern Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
@@ -78,8 +78,8 @@ namespace D3D11
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView> view;
 
         // TODO:: Change this into a int32_t Vec2 lastResolution variable
-        UINT lastWidth { 0 };
-        UINT lastHeight { 0 };
+        U32 lastWidth { 0 };
+        U32 lastHeight { 0 };
     };
 
     extern Window window;
@@ -101,5 +101,5 @@ namespace D3D11
     void SubmitFrame(std::vector<RenderPass>& passes);
     void EndFrame();
 
-    uint32_t CreateTexture(unsigned char* textureData, int width, int height);
+    U32 CreateTexture(U8* textureData, S32 width, S32 height);
 }

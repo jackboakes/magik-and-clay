@@ -37,7 +37,7 @@ inline std::array<bool, static_cast<size_t>(Key::COUNT)> keyStatePrevious {};
 
 namespace Input
 {
-    inline float scrollDelta;
+    inline F32 scrollDelta;
     inline Vec2F32 mousePosition;
 
     constexpr std::array<const char*, static_cast<size_t>(Key::COUNT)> keyNames = []()
@@ -159,7 +159,7 @@ namespace Input
         bool IsKeyPressed(Key key);
         bool IsKeyReleased(Key key);
 
-        float GetScrollDelta();
+        F32 GetScrollDelta();
         Vec2F32 GetMousePosition();
 }
 

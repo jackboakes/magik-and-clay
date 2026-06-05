@@ -1,7 +1,7 @@
 #include "camera.h"
 
-static constexpr float g_NearPlane { 0.0f };
-static constexpr float g_FarPlane { 100.0f };
+static constexpr F32 g_NearPlane { 0.0f };
+static constexpr F32 g_FarPlane { 100.0f };
 
 static HMM_Mat4 ViewFromCamera(const Camera& camera)
 {
@@ -21,7 +21,7 @@ static HMM_Mat4 InverseViewFromCamera(const Camera& camera)
     return HMM_MulM4(translate, HMM_MulM4(scale, offset));
 }
 
-HMM_Mat4 ViewProjectionFromCamera(const Camera& camera, float width, float height)
+HMM_Mat4 ViewProjectionFromCamera(const Camera& camera, F32 width, F32 height)
 {
     HMM_Mat4 projection { HMM_Orthographic_RH_ZO(
         0.0f, width,
