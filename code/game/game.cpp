@@ -7,6 +7,7 @@
 #include <sstream>
 #include <algorithm>
 #include <queue>
+#include <cassert>
 
 namespace Game
 {
@@ -257,84 +258,139 @@ namespace Game
         return{};
     }
 
+    void SetupGolem(Entity& entity)
+    {
+        entity.texture = gameState.golemTexture;
+        entity.speed = 3.0f;
+
+        SpriteAnimation idle {};
+        idle.currentFrame = 0;
+        idle.frameCount = 2;
+        idle.frameWidth = 16;
+        idle.frameHeight = 16;
+        idle.xOffset = 16;
+        idle.yOffset = 16;
+        idle.frameAdvancement = 30;
+        SpriteAnimation carrying {};
+        carrying.currentFrame = 0;
+        carrying.frameCount = 2;
+        carrying.frameWidth = 16;
+        carrying.frameHeight = 16;
+        carrying.xOffset = 16;
+        carrying.yOffset = 48;
+        carrying.frameAdvancement = 30;
+
+        entity.animationIdx = 0;
+        entity.animations[0] = idle;
+        entity.animations[1] = carrying;
+        entity.animationTicks = 0;
+    }
+
+    void SetupCrop(Entity& entity)
+    {
+        entity.texture = gameState.daisyTexture;
+        entity.growthTicks = 0;
+
+        SpriteAnimation daisyGrowth {};
+        daisyGrowth.currentFrame = 0;
+        daisyGrowth.frameCount = 4;
+        daisyGrowth.frameWidth = 16;
+        daisyGrowth.frameHeight = 16;
+        daisyGrowth.xOffset = 16;
+        daisyGrowth.yOffset = 16;
+
+        entity.animations[entity.animationIdx] = daisyGrowth;
+        entity.animationTicks = 0;
+    }
+
+    void SetupCauldron(Entity& entity)
+    {
+        entity.texture = gameState.cauldronTexture;
+        entity.AddFlag(EntityFlags::Collidable);
+        entity.collisionWidth = 2;
+        entity.collisionHeight = 2;
+
+        SpriteAnimation cauldronAnimation {};
+        cauldronAnimation.currentFrame = 0;
+        cauldronAnimation.frameCount = 7;
+        cauldronAnimation.frameWidth = 32;
+        cauldronAnimation.frameHeight = 32;
+        cauldronAnimation.xOffset = 16;
+        cauldronAnimation.yOffset = 16;
+        cauldronAnimation.frameAdvancement = 8;
+
+        entity.animations[entity.animationIdx] = cauldronAnimation;
+        entity.animationTicks = 0;
+    }
+
     Entity* CreateEntity(EntityKind kind)
     {
+        Entity* newEntity { nullptr };
         for (size_t index = 0; index < gameState.entities.size(); ++index)
         {
             if (gameState.entities[index].handle.id == 0)
             {
-                Entity* entity = &gameState.entities[index];
-                *entity = {};
-                entity->handle.id = gameState.nextEntityId++;
-                entity->handle.index = index;
-                entity->kind = kind;
-                return entity;
+                newEntity = &gameState.entities[index];
+                *newEntity = {};
+                newEntity->handle.id = gameState.nextEntityId++;
+                newEntity->handle.index = index;
+                newEntity->kind = kind;
+                break;
             }
         }
-        return nullptr;
+
+        if (!newEntity)
+        {
+            assert(false && "Entity array maxxed out!");
+            static Entity nullEntity {};
+            nullEntity = {};
+            return &nullEntity;
+        }
+
+        switch (kind)
+        {
+        case EntityKind::Golem:
+        {
+            SetupGolem(*newEntity);
+        }
+        break;
+        case EntityKind::Crop:
+        {
+            SetupCrop(*newEntity);
+        }
+        break;
+        case EntityKind::Cauldron:
+        {
+            SetupCauldron(*newEntity);
+        }
+        break;
+        }
+
+        return newEntity;
     }
-    
+
     void Init()
     {
         Renderer::WindowCreate(1280, 720, L"Farming Sim Prototype");
 
         gameState.interactableTexture = Renderer::LoadTexture("../data/textures/interactable.png");
         gameState.daisyItemTexture = Renderer::LoadTexture("../data/textures/daisy_item.png");
-        Texture cauldronTexture { Renderer::LoadTexture("../data/textures/cauldron.png") };
+        gameState.cauldronTexture = Renderer::LoadTexture("../data/textures/cauldron.png");
 
 
-        Entity* cauldron = CreateEntity(EntityKind::Cauldron);
+        Entity* cauldron { CreateEntity(EntityKind::Cauldron) };
         if (cauldron)
         {
-            cauldron->texture = cauldronTexture;
             cauldron->position = { 80.0f * g_TileSize, 44.0f * g_TileSize };
-            cauldron->AddFlag(EntityFlags::Collidable);
-            cauldron->collisionWidth = 2;
-            cauldron->collisionHeight = 2;
-
-            SpriteAnimation cauldronAnimation {};
-            cauldronAnimation.currentFrame = 0;
-            cauldronAnimation.frameCount = 7;
-            cauldronAnimation.frameWidth = 32;
-            cauldronAnimation.frameHeight = 32;
-            cauldronAnimation.xOffset = 16;
-            cauldronAnimation.yOffset = 16;
-            cauldronAnimation.frameAdvancement = 8;
-
-            cauldron->animations[cauldron->animationIdx] = cauldronAnimation;
         }
 
         gameState.golemTexture = Renderer::LoadTexture("../data/textures/golem.png");
 
-        Entity* golem = CreateEntity(EntityKind::Golem);
+        Entity* golem { CreateEntity(EntityKind::Golem) };
         if (golem)
         {
-            golem->texture = gameState.golemTexture;
             golem->position = { 80.0f * g_TileSize, 47.0f * g_TileSize }; // Near the cauldron in the center of the map
             golem->targetPosition = golem->position;
-            golem->speed = 3.0f;
-
-            SpriteAnimation idle {};
-            idle.currentFrame = 0;
-            idle.frameCount = 2;
-            idle.frameWidth = 16;
-            idle.frameHeight = 16;
-            idle.xOffset = 16;
-            idle.yOffset = 16;
-            idle.frameAdvancement = 30;
-            SpriteAnimation carrying {};
-            carrying.currentFrame = 0;
-            carrying.frameCount = 2;
-            carrying.frameWidth = 16;
-            carrying.frameHeight = 16;
-            carrying.xOffset = 16;
-            carrying.yOffset = 48;
-            carrying.frameAdvancement = 30;
-
-            golem->animationIdx = 0;
-            golem->animations[static_cast<S32>(GolemState::Idle)] = idle;
-            golem->animations[0] = idle; // carrying animation is tied to bool and not state
-            golem->animations[1] = carrying;
         }
 
         g_TileTextures[static_cast<size_t>(TileKind::Grass_1)] = Renderer::LoadTexture("../data/textures/grass1.png");
@@ -363,25 +419,14 @@ namespace Game
             {98, 47}, {99, 47}, {100, 48}, {103, 49}, {101, 50}
         };
 
-        Texture daisyAtlas { Renderer::LoadTexture("../data/textures/daisy.png") };
-        SpriteAnimation daisyGrowth {};
-        daisyGrowth.currentFrame = 0;
-        daisyGrowth.frameCount = 4;
-        daisyGrowth.frameWidth = 16;
-        daisyGrowth.frameHeight = 16;
-        daisyGrowth.xOffset = 16;
-        daisyGrowth.yOffset = 16;
+        gameState.daisyTexture = Renderer::LoadTexture("../data/textures/daisy.png");
 
         for (const Vec2S32& location : daisyLocations)
         {
-            Entity* daisy = CreateEntity(EntityKind::Crop);
+            Entity* daisy { CreateEntity(EntityKind::Crop) };
             if (daisy)
             {
-                daisy->texture = daisyAtlas;
                 daisy->position = { location.x * static_cast<F32>(g_TileSize), location.y * static_cast<F32>(g_TileSize) };
-                daisy->animations[0] = daisyGrowth;
-                daisy->animationTicks = 0;
-                daisy->growthTicks = 0;
             }
         }
     }
@@ -416,33 +461,11 @@ namespace Game
             
             if (gridPosition.x >= 0 && gridPosition.x < g_TileMapWidth && gridPosition.y >= 0 && gridPosition.y < g_TileMapHeight && !CheckCollidableFromTile(gridPosition))
             {
-                Entity* golem = CreateEntity(EntityKind::Golem);
+                Entity* golem { CreateEntity(EntityKind::Golem) };
                 if (golem)
                 {
-                    golem->texture = gameState.golemTexture;
                     golem->position = { static_cast<F32>(gridPosition.x) * g_TileSize, static_cast<F32>(gridPosition.y) * g_TileSize };
                     golem->targetPosition = golem->position;
-                    golem->speed = 3.0f;
-                    SpriteAnimation idle {};
-                    idle.currentFrame = 0;
-                    idle.frameCount = 2;
-                    idle.frameWidth = 16;
-                    idle.frameHeight = 16;
-                    idle.xOffset = 16;
-                    idle.yOffset = 16;
-                    idle.frameAdvancement = 30;
-                    SpriteAnimation carrying {};
-                    carrying.currentFrame = 0;
-                    carrying.frameCount = 2;
-                    carrying.frameWidth = 16;
-                    carrying.frameHeight = 16;
-                    carrying.xOffset = 16;
-                    carrying.yOffset = 48;
-                    carrying.frameAdvancement = 30;
-
-                    golem->animations[static_cast<S32>(GolemState::Idle)] = idle;
-                    golem->animations[0] = idle; // carrying animation is tied to bool and not state
-                    golem->animations[1] = carrying;
                 }
             }
         }

@@ -109,6 +109,9 @@ struct Entity
 
     std::vector<Vec2S32> path;
 
+    void (*update)(Entity&, float dt);
+    void (*draw)(const Entity&);
+
     inline bool HasFlag(U32 flag) const
     {
         return (flags & flag) != 0;
@@ -145,7 +148,9 @@ struct GameState
 
     Texture golemTexture;
     Texture interactableTexture;
+    Texture daisyTexture;
     Texture daisyItemTexture;
+    Texture cauldronTexture;
 };
 
 static GameState gameState { 0 };
