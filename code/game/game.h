@@ -48,19 +48,18 @@ enum class EntityKind
 enum EntityFlags : U8
 {
     None = 0,
-    Drawable = 1 << 0,
-    Collidable = 1 << 1,
-    Harvestable = 1 << 2 
+    Collidable = 1 << 0,
+    Harvestable = 1 << 1 
 };
 
 struct SpriteAnimation
 {
     U32 frameCount { 1 };
-    U32 currentFrame;
-    U32 frameWidth;
-    U32 frameHeight;
-    U32 xOffset;
-    U32 yOffset;
+    U32 currentFrame { 0 };
+    U32 frameWidth { 0 };
+    U32 frameHeight { 0 };
+    U32 xOffset { 0 };
+    U32 yOffset { 0 };
     /*
     The number of ticks that advance an animations frame.
     1 means one animation frame per tick, 
@@ -110,7 +109,26 @@ struct Entity
     std::vector<Vec2S32> path;
 
     void (*update)(Entity&, float dt);
-    void (*draw)(const Entity&);
+    void (*draw)(const Entity&) { [](const Entity& entity) 
+        {
+            size_t idx { entity.animationIdx };
+            U32 height { entity.animations[idx].frameHeight };
+            U32 width { entity.animations[idx].frameWidth };
+
+            RectF32 source { 0 };
+            source.width = width;
+            source.height = height;
+            source.x = entity.animations[idx].xOffset + (entity.animations[idx].currentFrame * (entity.animations[idx].xOffset + width));
+            source.y = entity.animations[idx].yOffset;
+
+            RectF32 destination { 0 };
+            destination.width = width;
+            destination.height = height;
+            destination.x = entity.position.x;
+            destination.y = entity.position.y;
+
+            Renderer::DrawSprite(entity.texture, destination, source);
+        } };
 
     inline bool HasFlag(U32 flag) const
     {

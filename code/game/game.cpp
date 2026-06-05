@@ -509,6 +509,14 @@ namespace Game
     void SetupItem(Entity& entity)
     {
         entity.texture = gameState.daisyItemTexture;
+
+        SpriteAnimation itemAnimation {};
+        itemAnimation.frameCount = 1;
+        itemAnimation.frameWidth = entity.texture.width;
+        itemAnimation.frameHeight = entity.texture.height;
+
+        entity.animations[0] = itemAnimation;
+
         entity.update = [](Entity&, float) {};
     }
 
@@ -834,39 +842,23 @@ namespace Game
 
                 for (const auto& entity : gameState.entities)
                 {
-                    if (entity.kind == EntityKind::None || entity.kind == EntityKind::Item) continue;
+                    if (entity.kind == EntityKind::None) continue;
 
-                    size_t idx = entity.animationIdx;
-                    U32 height { entity.animations[idx].frameHeight };
-                    U32 width { entity.animations[idx].frameWidth };
+                    F32 entityMinX { entity.position.x };
+                    F32 entityMinY { entity.position.y };
+                    F32 entityMaxX { entity.position.x + static_cast<F32>(entity.texture.width) };
+                    F32 entityMaxY { entity.position.y + static_cast<F32>(entity.texture.height) };
 
-                    RectF32 source { 0 };
-                    source.width = width;
-                    source.height = height;
-                    source.x = entity.animations[idx].xOffset + (entity.animations[idx].currentFrame * (entity.animations[idx].xOffset + width));
-                    source.y = entity.animations[idx].yOffset;
+                    bool visible { entityMaxX >= minWorld.x && entityMinX <= maxWorld.x &&
+                                   entityMaxY >= minWorld.y && entityMinY <= maxWorld.y };
 
-                    RectF32 destination { 0 };
-                    destination.width = width;
-                    destination.height = height;
-                    destination.x = entity.position.x;
-                    destination.y = entity.position.y;
-
-                    Renderer::DrawSprite(entity.texture, destination, source);
+                    if (visible)
+                    {
+                        entity.draw(entity);
+                    }
                 }
 
-                for (const auto& entity : gameState.entities)
-                {
-                    if (entity.kind != EntityKind::Item) continue;
-
-                    RectF32 dest;
-                    dest.width = gameState.daisyItemTexture.width;
-                    dest.height = gameState.daisyItemTexture.height;
-                    dest.x = entity.position.x;
-                    dest.y = entity.position.y;
-                    Renderer::DrawSprite(entity.texture, dest);
-                }
-
+                // Draw active entity overlay
                 {
                     Entity* entity { EntityFromHandle(gameState.activeEntityHandle) };
                     if (entity)
@@ -876,10 +868,21 @@ namespace Game
                         dest.height = gameState.interactableTexture.height;
                         dest.x = entity->position.x;
                         dest.y = entity->position.y;
-                        Renderer::DrawSprite(gameState.interactableTexture, dest);
+
+                        F32 entityMinX { dest.x };
+                        F32 entityMinY { dest.y };
+                        F32 entityMaxX { dest.x + static_cast<F32>(dest.width) };
+                        F32 entityMaxY { dest.y + static_cast<F32>(dest.height) };
+
+                        bool visible { entityMaxX >= minWorld.x && entityMinX <= maxWorld.x &&
+                                       entityMaxY >= minWorld.y && entityMinY <= maxWorld.y };
+
+                        if (visible)
+                        {
+                            Renderer::DrawSprite(gameState.interactableTexture, dest);
+                        }
                     }
                 }
-
 
             Renderer::EndMode();
 
