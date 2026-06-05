@@ -56,7 +56,7 @@ namespace Renderer
     void WindowCreate(S32 width, S32 height, std::wstring_view title);
 
     S32 GetFPS();
-
+    U32 GetDrawCallCount();
     RectF32 GetScreenRect();
 
     Texture LoadTexture(std::string_view path);

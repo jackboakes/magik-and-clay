@@ -1,8 +1,6 @@
 #include "game.h"
 
-#include "win32/win_core.h" // TODO:: remove this depenedency on win32 layer
 #include "input/input.h"
-#include "renderer/backend/d3d11_backend.h" // For temporary debug code to get sprite batch count
 
 #include <string>
 #include <fstream>
@@ -845,7 +843,7 @@ namespace Game
             Renderer::BeginModeScreenSpace();
 
                 Renderer::DrawText(gameState.font1, "FPS: " + std::to_string(Renderer::GetFPS()), 5, 5, gameState.font1.size);
-                Renderer::DrawText(gameState.font1, "Sprite Batch Count: " + std::to_string(D3D11::drawCallCount), 5, 15, gameState.font1.size);
+                Renderer::DrawText(gameState.font1, "Draw Call Count: " + std::to_string(Renderer::GetDrawCallCount()), 5, 15, gameState.font1.size);
 
                 {
                     Vec2F32 virtualMousePosition { GetMouseVirtualPositon() };

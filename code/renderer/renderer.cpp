@@ -49,6 +49,11 @@ namespace Renderer
         return fps;
     }
 
+    U32 GetDrawCallCount()
+    {
+        return D3D11::drawCallCount;
+    }
+
     RectF32 GetScreenRect()
     {
         return W32::ClientRectFromWindow(D3D11::window.handle);
