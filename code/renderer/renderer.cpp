@@ -1,20 +1,20 @@
 #include "renderer.h"
 
-#include <algorithm>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
 #include "renderer/backend/d3d11_backend.h"
 #include "HandmadeMath.h"
 #include "win32/win_core.h"
 #include "common/utils.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 #define STB_RECT_PACK_IMPLEMENTATION
 #include "stb_rect_pack.h"
-
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
+
+#include <algorithm>
+
+
 
 namespace Renderer
 {

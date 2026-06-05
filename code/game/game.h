@@ -1,13 +1,11 @@
 #pragma once
 
-#include <filesystem>
-#include <array>
-
 #include "camera/camera.h"
 #include "renderer/renderer.h"
 #include "common/types.h"
 
-
+#include <filesystem>
+#include <array>
 
 enum class TileKind
 {

@@ -1,17 +1,14 @@
 #include "game.h"
 
+#include "win32/win_core.h" // TODO:: remove this depenedency on win32 layer
+#include "input/input.h"
+#include "renderer/backend/d3d11_backend.h" // For temporary debug code to get sprite batch count
+
 #include <string>
 #include <fstream>
 #include <sstream>
 #include <algorithm>
 #include <queue>
-
-#include "win32/win_core.h" // TODO:: remove this depenedency on win32 layer
-
-#include "input/input.h"
-
-#include "renderer/backend/d3d11_backend.h" // For temporary debug code to get sprite batch count
-
 
 namespace Game
 {

@@ -1,9 +1,9 @@
-#include "renderer/backend/d3d11_backend.h"
+#include "d3d11_backend.h"
+
+#include "win32/win_core.h"
 
 #define HANDMADE_MATH_IMPLEMENTATION
 #include "HandmadeMath.h"
-
-#include "win32/win_core.h"
 
 #include <array>
 

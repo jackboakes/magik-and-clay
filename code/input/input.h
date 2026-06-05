@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/types.h"
-#include "HandmadeMath.h"
 
 #include <array>
 #include <string>

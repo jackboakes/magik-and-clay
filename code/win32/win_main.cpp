@@ -1,10 +1,8 @@
 /* TODO:: LIST
-    - win32 specific timer
     - vsync on/off toggle | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
     - borderless windowed mode
     - logging system
     - manage d3d11 renderer object lifetimes properly when exiting application
-    - sprite animations
 */
 
 #define WIN32_LEAN_AND_MEAN

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/types.h"
+
 #define UNICODE
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -14,7 +16,6 @@
 #undef max
 
 #include <string_view>
-#include "common/types.h"
 
 namespace W32
 {
