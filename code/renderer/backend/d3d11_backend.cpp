@@ -94,13 +94,9 @@ namespace D3D11
             }
         }
 
-        if (!error.empty())
-        {
-            MessageBoxW(nullptr, error.c_str(), L"Error", MB_ICONERROR | MB_OK);
-            ExitProcess(1);
-        }
 
         // blend state
+        if(error.empty())
         {
             D3D11_BLEND_DESC blendDesc {};
             blendDesc.RenderTarget[0].BlendEnable = true;
@@ -111,7 +107,12 @@ namespace D3D11
             blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
             blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
             blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-            device->CreateBlendState(&blendDesc, &blendState);
+            HRESULT bsResult { device->CreateBlendState(&blendDesc, &blendState) };
+
+            if (bsResult != S_OK)
+            {
+                error = L"D3D11: Failed to create blend state";
+            }
         }
 
         // Shader
@@ -183,26 +184,39 @@ namespace D3D11
         }
 
         // instance buffer
+        if (error.empty())
         {
             D3D11_BUFFER_DESC instanceBufferDesc {};
             instanceBufferDesc.ByteWidth = sizeof(InstanceData) * MAX_SPRITES;
             instanceBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
             instanceBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
             instanceBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-            device->CreateBuffer(&instanceBufferDesc, nullptr, &instanceBuffer);
+            HRESULT ibResult { device->CreateBuffer(&instanceBufferDesc, nullptr, &instanceBuffer) };
+
+            if (ibResult != S_OK)
+            {
+                error = L"D3D11: Failed to create instance buffer";
+            }
         }
 
         // Constant buffer
+        if (error.empty())
         {
             D3D11_BUFFER_DESC constantBufferDesc {};
             constantBufferDesc.ByteWidth = sizeof(Constants);
             constantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
             constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
             constantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-            device->CreateBuffer(&constantBufferDesc, nullptr, &constantBuffer);
+            HRESULT cbResult { device->CreateBuffer(&constantBufferDesc, nullptr, &constantBuffer) };
+
+            if (cbResult != S_OK)
+            {
+                error = L"D3D11: Failed to create constant buffer";
+            }
         }
 
         // point sampler
+        if (error.empty())
         {
             D3D11_SAMPLER_DESC pointSamplerDesc {};
             pointSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
@@ -210,8 +224,12 @@ namespace D3D11
             pointSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
             pointSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
             pointSamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-
-            device->CreateSamplerState(&pointSamplerDesc, &pointSampler);
+            HRESULT psResult { device->CreateSamplerState(&pointSamplerDesc, &pointSampler) };
+            
+            if (psResult != S_OK)
+            {
+                error = L"D3D11: Failed to create sammpler state";
+            }
         }
 
         // depth/stencil
