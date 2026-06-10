@@ -80,15 +80,18 @@ namespace Renderer
         return texture;
     }
 
-    void DrawSprite(Texture texture, const RectF32& destination)
+
+    void DrawSprite(Texture texture, Vec3F32 position, F32 width, F32 height)
     {
         if (s_activePass)
         {
             SpriteInstance sprite;
             sprite.texture = texture;
-            sprite.destination = destination;
-            sprite.source.width = destination.width;
-            sprite.source.height = destination.height;
+            sprite.position = position;
+            sprite.width = width;
+            sprite.height = height;
+            sprite.source.width = width;
+            sprite.source.height = height;
             sprite.source.x = 0;
             sprite.source.y = 0;
             s_activePass->sprites.push_back(sprite);
@@ -96,13 +99,15 @@ namespace Renderer
         // TODO:: logging
     }
 
-    void DrawSprite(Texture texture, const RectF32& destination, const RectF32& source)
+    void DrawSprite(Texture texture, Vec3F32 position, float width, float height, const RectF32& source)
     {
         if (s_activePass)
         {
             SpriteInstance sprite;
             sprite.texture = texture;
-            sprite.destination = destination;
+            sprite.position = position;
+            sprite.width = width;
+            sprite.height = height;
             sprite.source = source;
             s_activePass->sprites.push_back(sprite);
         }
@@ -196,7 +201,7 @@ namespace Renderer
             dest.width = floorf(glpyh.source.width * scale);
             dest.height = floorf(glpyh.source.height * scale);
 
-            Renderer::DrawSprite(font.atlas, dest, glpyh.source);
+            Renderer::DrawSprite(font.atlas, { dest.x, dest.y, 0.0f }, dest.width, dest.height, glpyh.source);
 
             textOffsetX += glpyh.advanceX * scale;
         }
@@ -213,7 +218,7 @@ namespace Renderer
     void BeginModeScreenSpace()
     {
         RenderPass pass;
-        pass.viewProjection = HMM_Orthographic_RH_ZO(0.0f, s_width, s_height, 0.0f, 0.0f, 100.0f);
+        pass.viewProjection = HMM_Orthographic_LH_ZO(0.0f, s_width, s_height, 0.0f, 0.0f, 100.0f);
         s_passes.push_back(pass);
         s_activePass = &s_passes.back();
     }

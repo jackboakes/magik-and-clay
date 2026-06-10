@@ -127,7 +127,7 @@ struct Entity
             destination.x = entity.position.x;
             destination.y = entity.position.y;
 
-            Renderer::DrawSprite(entity.texture, destination, source);
+            Renderer::DrawSprite(entity.texture, { destination.x, destination.y, 1.0f - (entity.position.y / (g_TileMapHeight * g_TileSize)) }, destination.width, destination.height, source);
         } };
 
     inline bool HasFlag(U32 flag) const

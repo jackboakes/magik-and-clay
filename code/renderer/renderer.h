@@ -19,7 +19,9 @@ struct Texture
 struct SpriteInstance
 {
     Texture texture;
-    RectF32 destination;
+    Vec3F32 position;
+    F32 width;
+    F32 height;
     RectF32 source;
 };
 
@@ -61,8 +63,8 @@ namespace Renderer
 
     Texture LoadTexture(std::string_view path);
 
-    void DrawSprite(Texture texture, const RectF32& destination);
-    void DrawSprite(Texture texture, const RectF32& destination, const RectF32& source);
+    void DrawSprite(Texture texture, Vec3F32 position, F32 width, F32 height);
+    void DrawSprite(Texture texture, Vec3F32 position, float width, float height, const RectF32& source);
 
     Font LoadFont(std::filesystem::path filePath, F32 size);
     void DrawText(const Font& font, std::string_view text, F32 x, F32 y, S32 size);

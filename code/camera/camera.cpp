@@ -23,7 +23,7 @@ static HMM_Mat4 InverseViewFromCamera(const Camera& camera)
 
 HMM_Mat4 ViewProjectionFromCamera(const Camera& camera, F32 width, F32 height)
 {
-    HMM_Mat4 projection { HMM_Orthographic_RH_ZO(
+    HMM_Mat4 projection { HMM_Orthographic_LH_ZO(
         0.0f, width,
         height, 0.0f,
         g_NearPlane, g_FarPlane

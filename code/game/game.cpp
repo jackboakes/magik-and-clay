@@ -578,23 +578,8 @@ namespace Game
         gameState.interactableTexture = Renderer::LoadTexture("../data/textures/interactable.png");
         gameState.daisyItemTexture = Renderer::LoadTexture("../data/textures/daisy_item.png");
         gameState.cauldronTexture = Renderer::LoadTexture("../data/textures/cauldron.png");
-
-
-        Entity* cauldron { CreateEntity(EntityKind::Cauldron) };
-        if (cauldron)
-        {
-            cauldron->position = { 80.0f * g_TileSize, 44.0f * g_TileSize };
-        }
-
         gameState.golemTexture = Renderer::LoadTexture("../data/textures/golem.png");
-
-        Entity* golem { CreateEntity(EntityKind::Golem) };
-        if (golem)
-        {
-            golem->position = { 80.0f * g_TileSize, 47.0f * g_TileSize }; // Near the cauldron in the center of the map
-            golem->targetPosition = golem->position;
-        }
-
+        gameState.daisyTexture = Renderer::LoadTexture("../data/textures/daisy.png");
         g_TileTextures[static_cast<size_t>(TileKind::Grass_1)] = Renderer::LoadTexture("../data/textures/grass1.png");
         g_TileTextures[static_cast<size_t>(TileKind::Grass_2)] = Renderer::LoadTexture("../data/textures/grass2.png");
         g_TileTextures[static_cast<size_t>(TileKind::Grass_3)] = Renderer::LoadTexture("../data/textures/grass3.png");
@@ -603,6 +588,19 @@ namespace Game
 
         gameState.font1 = Renderer::LoadFont("../data/font/romulus.ttf", 16.0f);
         gameState.font2 = Renderer::LoadFont("../data/font/tiny5.ttf", 8.0f);
+
+        Entity* cauldron { CreateEntity(EntityKind::Cauldron) };
+        if (cauldron)
+        {
+            cauldron->position = { 80.0f * g_TileSize, 44.0f * g_TileSize };
+        }
+
+        Entity* golem { CreateEntity(EntityKind::Golem) };
+        if (golem)
+        {
+            golem->position = { 80.0f * g_TileSize, 47.0f * g_TileSize }; // Near the cauldron in the center of the map
+            golem->targetPosition = golem->position;
+        }
 
         gameState.camera.position = { (g_TileMapWidth * g_TileSize) * 0.5f, (g_TileMapHeight * g_TileSize) * 0.5f };
         gameState.camera.offset = { 640 * 0.5f, 360 * 0.5f };
@@ -620,8 +618,6 @@ namespace Game
             {99, 45}, {97, 46}, {98, 46}, {99, 46}, {96, 47},
             {98, 47}, {99, 47}, {100, 48}, {103, 49}, {101, 50}
         };
-
-        gameState.daisyTexture = Renderer::LoadTexture("../data/textures/daisy.png");
 
         for (const Vec2S32& location : daisyLocations)
         {
@@ -836,7 +832,7 @@ namespace Game
                             continue;
                         }
                         RectF32 dest { static_cast<F32>(x * g_TileSize), static_cast<F32>(y * g_TileSize), g_TileSize, g_TileSize };
-                        Renderer::DrawSprite(g_TileTextures[static_cast<size_t>(tile.kind)], dest);
+                        Renderer::DrawSprite(g_TileTextures[static_cast<size_t>(tile.kind)], {dest.x, dest.y, 100.0f}, dest.width, dest.height);
                     }
                 }
 
@@ -879,7 +875,7 @@ namespace Game
 
                         if (visible)
                         {
-                            Renderer::DrawSprite(gameState.interactableTexture, dest);
+                            Renderer::DrawSprite(gameState.interactableTexture, { dest.x, dest.y, 0.0f }, dest.width, dest.height);
                         }
                     }
                 }

@@ -50,6 +50,13 @@ struct Vec2F32
     }
 };
 
+struct Vec3F32
+{
+    F32 x;
+    F32 y;
+    F32 z;
+};
+
 struct RectF32
 {
     F32 x;

@@ -30,8 +30,9 @@ namespace D3D11
     std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> textureStorage;
     Microsoft::WRL::ComPtr<ID3D11SamplerState> pointSampler;
     Microsoft::WRL::ComPtr<ID3D11BlendState> blendState;
-
-
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> depthBuffer;
+    Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView;
+    Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depthState;
 
     // TODO:: Not sure on what the best number for this is
     constexpr size_t MAX_SPRITES { 2048 };
@@ -213,6 +214,21 @@ namespace D3D11
             device->CreateSamplerState(&pointSamplerDesc, &pointSampler);
         }
 
+        // depth/stencil
+        if(error.empty())
+        {
+            D3D11_DEPTH_STENCIL_DESC depthStencilDesc {};
+            depthStencilDesc.DepthEnable = true;
+            depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+            depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+            HRESULT dsResult { device->CreateDepthStencilState(&depthStencilDesc, &depthState) };
+            
+            if(dsResult != S_OK)
+            {
+                error = L"D3D11: Failed to create depth stencil state";
+            }
+        }
+
         if (!error.empty())
         {
             MessageBoxW(nullptr, error.c_str(), L"Error", MB_ICONERROR | MB_OK);
@@ -223,9 +239,11 @@ namespace D3D11
      void WindowEquip(HWND handle)
     {
         std::wstring error;
+       
 
         //swap chain
         {
+            window.handle = handle;
             // Get the drawable area (the window area excluding the title bar and border)
             RectF32 clientRect { W32::ClientRectFromWindow(window.handle) };
 
@@ -295,7 +313,33 @@ namespace D3D11
             window.swapChain->GetBuffer(0, IID_PPV_ARGS(&framebuffer));
             device->CreateRenderTargetView(framebuffer, 0, &window.view);
             framebuffer->Release();
+
+
+            {
+                depthBuffer.Reset();
+                depthView.Reset();
+
+                D3D11_TEXTURE2D_DESC depthDesc {};
+                depthDesc.Width = width;
+                depthDesc.Height = height;
+                depthDesc.MipLevels = 1;
+                depthDesc.ArraySize = 1;
+                depthDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+                depthDesc.SampleDesc.Count = 1;
+                depthDesc.SampleDesc.Quality = 0;
+                depthDesc.Usage = D3D11_USAGE_DEFAULT;
+                depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+                depthDesc.CPUAccessFlags = 0;
+                depthDesc.MiscFlags = 0;
+                device->CreateTexture2D(&depthDesc, nullptr, &depthBuffer);
+                device->CreateDepthStencilView(depthBuffer.Get(), nullptr, &depthView);
+            }
+
+
+            
         }
+
+        context->ClearDepthStencilView(depthView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
         // TODO:: let the user change this colour
         constexpr float clearColour[] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -307,8 +351,8 @@ namespace D3D11
             U32 height { window.lastHeight };
             D3D11_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<F32>(width), static_cast<F32>(height), 0.0f, 1.0f };
 
-            context->OMSetRenderTargets(1, window.view.GetAddressOf(),
-                nullptr);
+
+            context->OMSetRenderTargets(1, window.view.GetAddressOf(), depthView.Get());
             context->RSSetViewports(1, &viewport);
         }
     }
@@ -319,20 +363,20 @@ namespace D3D11
         UINT strides[] = { sizeof(Vertex), sizeof(InstanceData) };
         UINT offsets[] { 0 , 0 };
         ID3D11Buffer* buffers[] = { vertexBuffer.Get(), instanceBuffer.Get() };
-        D3D11::context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        D3D11::context->IASetInputLayout(D3D11::inputLayout.Get());
-        D3D11::context->IASetVertexBuffers(0, 2, buffers, strides, offsets);
-        D3D11::context->IASetIndexBuffer(D3D11::indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        context->IASetInputLayout(inputLayout.Get());
+        context->IASetVertexBuffers(0, 2, buffers, strides, offsets);
+        context->IASetIndexBuffer(indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 
         // setup shaders
-        D3D11::context->VSSetShader(D3D11::vertexShader.Get(), nullptr, 0);
-        D3D11::context->VSSetConstantBuffers(0, 1, D3D11::constantBuffer.GetAddressOf());
+        context->VSSetShader(vertexShader.Get(), nullptr, 0);
+        context->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 
-        D3D11::context->PSSetShader(D3D11::pixelShader.Get(), nullptr, 0);
-        D3D11::context->PSSetSamplers(0, 1, D3D11::pointSampler.GetAddressOf());
-
-        D3D11::context->OMSetBlendState(D3D11::blendState.Get(), 0, 0xFFFFFFFF);
-
+        context->PSSetShader(pixelShader.Get(), nullptr, 0);
+       context->PSSetSamplers(0, 1, pointSampler.GetAddressOf());
+       context->OMSetDepthStencilState(depthState.Get(), 1);
+        context->OMSetBlendState(blendState.Get(), 0, 0xFFFFFFFF);
+        
         for (RenderPass& pass : passes)
         {
             // pass viewproj to constant buffer
@@ -361,8 +405,8 @@ namespace D3D11
                         const SpriteInstance& sprite { pass.sprites[i] };
 
                         spriteBuffer[batchCount].model = HMM_MulM4(
-                            HMM_Translate(HMM_V3(sprite.destination.x, sprite.destination.y, 0.0f)),
-                            HMM_Scale(HMM_V3(sprite.destination.width, sprite.destination.height, 1.0f))
+                            HMM_Translate(HMM_V3(sprite.position.x, sprite.position.y, sprite.position.z)),
+                            HMM_Scale(HMM_V3(sprite.width, sprite.height, 1.0f))
                         );
                         spriteBuffer[batchCount].sourcePos = { sprite.source.x, sprite.source.y };
                         spriteBuffer[batchCount].textureSize = { (F32)sprite.texture.width, (F32)sprite.texture.height };

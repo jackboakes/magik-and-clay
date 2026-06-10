@@ -13,8 +13,8 @@
 
 #include <vector>
 
-constexpr F32 g_NearPlane { -1.0f };
-constexpr F32 g_FarPlane { 1.0f };
+static constexpr F32 g_NearPlane { 0.0f };
+static constexpr F32 g_FarPlane { 100.0f };
 
 struct InstanceData
 {
