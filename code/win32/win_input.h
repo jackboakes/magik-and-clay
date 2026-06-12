@@ -89,4 +89,4 @@ constexpr auto KeyFromVK()
     return result;
 }
 
-constexpr auto keyTable { KeyFromVK() };
+inline constexpr auto keyTable { KeyFromVK() };

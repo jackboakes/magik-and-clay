@@ -13,9 +13,6 @@
 
 #include <vector>
 
-static constexpr F32 g_NearPlane { 0.0f };
-static constexpr F32 g_FarPlane { 100.0f };
-
 struct InstanceData
 {
     HMM_Mat4 model;
@@ -42,7 +39,7 @@ struct Vertex
 // Pivot point is top left like raylib
 // TODO:: at the moment I'm thinking that there should be two quad functions or a way to change the pivot
 // tiles i'd prefer to be at top left pivot but certain objects i'd prefer the pivot to be in the centre.
-constexpr Vertex vertices[] =
+inline constexpr Vertex vertices[] =
 {
     {0.0f, 0.0f, 0.0f,  0.0f, 0.0f},  // top left
     {1.0f, 0.0f, 0.0f,  1.0f, 0.0f},  // top right
@@ -50,7 +47,7 @@ constexpr Vertex vertices[] =
     {0.0f, 1.0f, 0.0f,  0.0f, 1.0f},  // bottom left
 };
 
-constexpr U16 indices[] =
+inline constexpr U16 indices[] =
 {
     0, 1, 2, // t1
     0, 2, 3 // t2
