@@ -240,7 +240,7 @@ namespace Renderer
     {
         for (RenderPass& pass : s_passes)
         {
-            // TODO:: z layer sorting since this is temp
+            // TODO:: could collect the order of textures as the user calls drawsprite instead of logn sorting by handle
             std::sort(pass.sprites.begin(), pass.sprites.end(), [](const SpriteInstance& a, const SpriteInstance& b) 
             {
                 return a.texture.handle > b.texture.handle;

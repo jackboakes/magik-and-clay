@@ -74,9 +74,7 @@ namespace D3D11
         Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView> view;
 
-        // TODO:: Change this into a int32_t Vec2 lastResolution variable
-        U32 lastWidth { 0 };
-        U32 lastHeight { 0 };
+        Vec2S32 lastResolution { 0,0 };
     };
 
     extern Window window;

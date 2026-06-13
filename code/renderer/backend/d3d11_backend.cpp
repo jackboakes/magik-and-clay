@@ -310,15 +310,13 @@ namespace D3D11
         drawCallCount = internalDrawCallCount;
         internalDrawCallCount = 0;
         RectF32 clientRect { W32::ClientRectFromWindow(window.handle) };
+        Vec2S32 currentResolution { static_cast<U32>(clientRect.width), static_cast<U32>(clientRect.height) };
 
-        const U32 width { static_cast<U32>(clientRect.width) };
-        const U32 height { static_cast<U32>(clientRect.height) };
+        bool resolutionChanged { currentResolution != window.lastResolution };
 
-        bool resolutionChanged { (window.lastWidth != width ||
-            window.lastHeight != height) };
-
-        window.lastWidth = width;
-        window.lastHeight = height;
+        window.lastResolution = currentResolution;
+        U32 width { static_cast<U32>(currentResolution.x) };
+        U32 height { static_cast<U32>(currentResolution.y) };
 
         // resize swapchain and framebuffer
         if (resolutionChanged)
@@ -360,16 +358,14 @@ namespace D3D11
         context->ClearDepthStencilView(depthView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
         // TODO:: let the user change this colour
-        constexpr float clearColour[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        constexpr float clearColour[] { 0.0f, 0.0f, 0.0f, 1.0f };
         context->ClearRenderTargetView(window.view.Get(), clearColour);
 
         // Update viewport
         {
-            U32 width { window.lastWidth };
-            U32 height { window.lastHeight };
-            D3D11_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<F32>(width), static_cast<F32>(height), 0.0f, 1.0f };
-
-
+            U32 width { static_cast<U32>(window.lastResolution.x) };
+            U32 height { static_cast<U32>(window.lastResolution.y) };
+            D3D11_VIEWPORT viewport { 0.0f, 0.0f, static_cast<F32>(width), static_cast<F32>(height), 0.0f, 1.0f };
             context->OMSetRenderTargets(1, window.view.GetAddressOf(), depthView.Get());
             context->RSSetViewports(1, &viewport);
         }
@@ -378,9 +374,9 @@ namespace D3D11
     void SubmitFrame(std::vector<RenderPass>& passes)
     {
         // setup input assembly
-        UINT strides[] = { sizeof(Vertex), sizeof(InstanceData) };
+        UINT strides[] { sizeof(Vertex), sizeof(InstanceData) };
         UINT offsets[] { 0 , 0 };
-        ID3D11Buffer* buffers[] = { vertexBuffer.Get(), instanceBuffer.Get() };
+        ID3D11Buffer* buffers[] { vertexBuffer.Get(), instanceBuffer.Get() };
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         context->IASetInputLayout(inputLayout.Get());
         context->IASetVertexBuffers(0, 2, buffers, strides, offsets);
