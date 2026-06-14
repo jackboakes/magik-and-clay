@@ -145,6 +145,20 @@ namespace W32
         }
         break;
 
+        case WM_SYSCOMMAND:
+        {
+            // Ignore beep sound when unhandled Alt+key combo
+            if (wParam == SC_KEYMENU)
+            {
+                return 0;
+            }
+            else
+            {
+                result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
+            }
+        }
+        break;
+
         default:
         {
             result = DefWindowProcW(hwnd, uMsg, wParam, lParam);
