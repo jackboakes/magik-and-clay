@@ -86,11 +86,16 @@ namespace D3D11
         // factory
         if (error.empty())
         {
-            HRESULT factoryResult { CreateDXGIFactory1(IID_PPV_ARGS(&factory)) };
+            Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
+            Microsoft::WRL::ComPtr<IDXGIAdapter> adapter;
 
-            if (factoryResult != S_OK)
+            device.As(&dxgiDevice);
+            dxgiDevice->GetAdapter(&adapter);
+            adapter->GetParent(IID_PPV_ARGS(&factory));
+
+            if (!factory)
             {
-                error = L"D3D11: Unable to create DXGIFactory";
+                error = L"D3D11: Unable to get DXGIFactory from device";
             }
         }
 
@@ -276,11 +281,11 @@ namespace D3D11
             swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
             // TODO:: change scaling to none when implementing virtual resolution
             swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
-            swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING | DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+            swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
             DXGI_SWAP_CHAIN_FULLSCREEN_DESC swapChainFullscreenDesc {};
             swapChainFullscreenDesc.Windowed = true;
-
+            
             HRESULT swapChainResult { factory->CreateSwapChainForHwnd(
                 device.Get(),
                 handle,
@@ -289,8 +294,8 @@ namespace D3D11
                 0,
                 &window.swapChain
             ) };
-
-            factory->MakeWindowAssociation(handle, 0);
+            factory->MakeWindowAssociation(handle, DXGI_MWA_NO_ALT_ENTER);
+            
 
             if (swapChainResult != S_OK)
             {
@@ -313,12 +318,15 @@ namespace D3D11
         Vec2S32 currentResolution { static_cast<U32>(clientRect.width), static_cast<U32>(clientRect.height) };
 
         bool resolutionChanged { currentResolution != window.lastResolution };
-
+        if (currentResolution.x == 0 || currentResolution.y == 0)
+        {
+            return;
+        }
         window.lastResolution = currentResolution;
         U32 width { static_cast<U32>(currentResolution.x) };
         U32 height { static_cast<U32>(currentResolution.y) };
 
-        // resize swapchain and framebuffer
+        // resize swapchain, framebuffer and depth buffer
         if (resolutionChanged)
         {
             context->OMSetRenderTargets(0, 0, 0);
@@ -350,9 +358,6 @@ namespace D3D11
                 device->CreateTexture2D(&depthDesc, nullptr, &depthBuffer);
                 device->CreateDepthStencilView(depthBuffer.Get(), nullptr, &depthView);
             }
-
-
-            
         }
 
         context->ClearDepthStencilView(depthView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -387,8 +392,8 @@ namespace D3D11
         context->VSSetConstantBuffers(0, 1, constantBuffer.GetAddressOf());
 
         context->PSSetShader(pixelShader.Get(), nullptr, 0);
-       context->PSSetSamplers(0, 1, pointSampler.GetAddressOf());
-       context->OMSetDepthStencilState(depthState.Get(), 1);
+        context->PSSetSamplers(0, 1, pointSampler.GetAddressOf());
+        context->OMSetDepthStencilState(depthState.Get(), 1);
         context->OMSetBlendState(blendState.Get(), 0, 0xFFFFFFFF);
         
         for (RenderPass& pass : passes)

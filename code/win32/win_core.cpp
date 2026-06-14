@@ -31,13 +31,13 @@ namespace W32
         case WM_MBUTTONDOWN:
         case WM_RBUTTONDOWN:
         {
-            bool mouseIsDown = (uMsg == WM_LBUTTONDOWN ||
+            bool mouseIsDown { (uMsg == WM_LBUTTONDOWN ||
                 uMsg == WM_RBUTTONDOWN ||
-                uMsg == WM_MBUTTONDOWN);
+                uMsg == WM_MBUTTONDOWN) };
 
-            Key key = (uMsg == WM_LBUTTONDOWN || uMsg == WM_LBUTTONUP) ? Key::MOUSE_LEFT
+            Key key { (uMsg == WM_LBUTTONDOWN || uMsg == WM_LBUTTONUP) ? Key::MOUSE_LEFT
                 : (uMsg == WM_RBUTTONDOWN || uMsg == WM_RBUTTONUP) ? Key::MOUSE_RIGHT
-                : Key::MOUSE_MIDDLE;
+                : Key::MOUSE_MIDDLE };
 
 
 
@@ -66,8 +66,44 @@ namespace W32
 
         // Keyboard input
         case WM_SYSKEYDOWN:
+        {
+            // Toggle windowed fullscreen
+            bool altKeyDown { ((lParam) & (1 << 29)) != 0 };
+            if (wParam == VK_RETURN && altKeyDown)
+            {
+                DWORD style { static_cast<DWORD>(GetWindowLongW(hwnd, GWL_STYLE)) };
+                static WINDOWPLACEMENT wpPrev { sizeof(wpPrev) };
+
+                if (style & WS_OVERLAPPEDWINDOW)
+                {
+                    MONITORINFO mi { sizeof(mi) };
+                    if (GetWindowPlacement(hwnd, &wpPrev) &&
+                        GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY), &mi))
+                    {
+                        SetWindowLongW(hwnd, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
+                        SetWindowPos(hwnd, HWND_TOP,
+                            mi.rcMonitor.left, mi.rcMonitor.top,
+                            mi.rcMonitor.right - mi.rcMonitor.left,
+                            mi.rcMonitor.bottom - mi.rcMonitor.top,
+                            SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+                    }
+                }
+                else
+                {
+                    SetWindowLongW(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+                    SetWindowPlacement(hwnd, &wpPrev);
+                    SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+                        SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
+                        SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+                }
+
+                return 0;
+            }
+        }
+        [[fallthrough]];
         case WM_SYSKEYUP:
         {
+
             // NOTE:: function keys are syskeys when alt is held
             // alt by itself is allowed to fall through
             if (wParam != VK_MENU && wParam == VK_F4)
