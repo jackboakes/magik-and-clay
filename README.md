@@ -12,12 +12,20 @@ Here's what I've implemented so far:
 - Camera with zoom to cursor and panning via WASD
 - Entity system
 - Left click to pick an entity and right click to move via A*
+<<<<<<< HEAD
 - Tiles and entities are culled if not visible by camera
+=======
+- Tiles and entities are culled if not visibile by camera
+>>>>>>> afee3695e569872623e9169933dfdd9f73eebf71
 - Windowed fullscreen via Alt + Enter
  - & many more
  
 ## Preview
+<<<<<<< HEAD
 <img width="1919" height="1079" alt="game engine protoype as of 150626" src="https://github.com/user-attachments/assets/33790b74-fa01-4bec-bc93-7caf3ba46141" />
+=======
+<img width="1919" height="1079" alt="game engine protype as of 150626" src="https://github.com/user-attachments/assets/33790b74-fa01-4bec-bc93-7caf3ba46141" />
+>>>>>>> afee3695e569872623e9169933dfdd9f73eebf71
 
 ## Usage
 If you want to build the project you'll need to be on windows with CMake 3.12+.
