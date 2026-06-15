@@ -1,6 +1,5 @@
 /* TODO:: LIST
     - vsync on/off toggle | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
-    - borderless windowed mode
     - logging system
     - manage d3d11 renderer object lifetimes properly when exiting application
 */

@@ -428,7 +428,7 @@ namespace D3D11
                             HMM_Scale(HMM_V3(sprite.width, sprite.height, 1.0f))
                         );
                         spriteBuffer[batchCount].sourcePos = { sprite.source.x, sprite.source.y };
-                        spriteBuffer[batchCount].textureSize = { (F32)sprite.texture.width, (F32)sprite.texture.height };
+                        spriteBuffer[batchCount].textureSize = { static_cast<F32>(sprite.texture.width), static_cast<F32>(sprite.texture.height) };
                         spriteBuffer[batchCount].spriteSize = { sprite.source.width, sprite.source.height };
 
                         batchCount++;
