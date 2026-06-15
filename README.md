@@ -1,14 +1,33 @@
-# Magik and Clay | Name is subject to change
-A WIP 2D game engine and prototype game built in C++20 with DirectX 11 and Win32. Built with philosophy from Handmade Hero, raylib and Quake 3. Layers are structured as a directed acyclic graph, with the intention of making cross platform porting easier.
+# Magik and Clay
+
+A WIP 2D game engine and prototype game built in C++20 with DirectX 11 for the rendering layer and Win32 for the OS platform layer. Built with philosophy from Handmade Hero, raylib and Quake 3. Layers are structured as a directed acyclic graph, with the intention of making cross platform porting easier.
+
+Here's what I've implemented so far:
+- Sprite rendering
+- Sprite animations
+- Font rendering
+- Draw calls batched by texture
+- Draw calls are batched into two passes one for world space and one for screen space
+- Depth testing for ordering which sprites are drawn on top
+- Camera with zoom to cursor and panning via WASD
+- Entity system
+- Left click to pick an entity and right click to move via A*
+- Tiles and entities are culled if not visible by camera
+- Windowed fullscreen via Alt + Enter
+ - & many more
+ 
+## Preview
+<img width="1919" height="1079" alt="game engine protoype as of 150626" src="https://github.com/user-attachments/assets/33790b74-fa01-4bec-bc93-7caf3ba46141" />
 
 ## Usage
-If you want to build the project you'll need CMake 3.12+ and I currently only support windows.
+If you want to build the project you'll need to be on windows with CMake 3.12+.
 ```
 git clone https://github.com/jackboakes/magik-and-clay.git
 cd magik-and-clay
 cmake -B build
 cmake --build build
 ```
+After building, the executable is in the root folder  
 
 ## Dependencies
 - [Handmade Math](https://github.com/HandmadeMath/HandmadeMath)

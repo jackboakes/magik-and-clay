@@ -575,19 +575,19 @@ namespace Game
     {
         Renderer::WindowCreate(1280, 720, L"Farming Sim Prototype");
 
-        gameState.interactableTexture = Renderer::LoadTexture("../data/textures/interactable.png");
-        gameState.daisyItemTexture = Renderer::LoadTexture("../data/textures/daisy_item.png");
-        gameState.cauldronTexture = Renderer::LoadTexture("../data/textures/cauldron.png");
-        gameState.golemTexture = Renderer::LoadTexture("../data/textures/golem.png");
-        gameState.daisyTexture = Renderer::LoadTexture("../data/textures/daisy.png");
-        g_TileTextures[static_cast<size_t>(TileKind::Grass_1)] = Renderer::LoadTexture("../data/textures/grass1.png");
-        g_TileTextures[static_cast<size_t>(TileKind::Grass_2)] = Renderer::LoadTexture("../data/textures/grass2.png");
-        g_TileTextures[static_cast<size_t>(TileKind::Grass_3)] = Renderer::LoadTexture("../data/textures/grass3.png");
+        gameState.interactableTexture = Renderer::LoadTexture("data/textures/interactable.png");
+        gameState.daisyItemTexture = Renderer::LoadTexture("data/textures/daisy_item.png");
+        gameState.cauldronTexture = Renderer::LoadTexture("data/textures/cauldron.png");
+        gameState.golemTexture = Renderer::LoadTexture("data/textures/golem.png");
+        gameState.daisyTexture = Renderer::LoadTexture("data/textures/daisy.png");
+        g_TileTextures[static_cast<size_t>(TileKind::Grass_1)] = Renderer::LoadTexture("data/textures/grass1.png");
+        g_TileTextures[static_cast<size_t>(TileKind::Grass_2)] = Renderer::LoadTexture("data/textures/grass2.png");
+        g_TileTextures[static_cast<size_t>(TileKind::Grass_3)] = Renderer::LoadTexture("data/textures/grass3.png");
 
-        LoadTileMap("../data/tilemap/tilemap1.csv");
+        LoadTileMap("data/tilemap/tilemap1.csv");
 
-        gameState.font1 = Renderer::LoadFont("../data/font/romulus.ttf", 16.0f);
-        gameState.font2 = Renderer::LoadFont("../data/font/tiny5.ttf", 8.0f);
+        gameState.font1 = Renderer::LoadFont("data/font/romulus.ttf", 16.0f);
+        gameState.font2 = Renderer::LoadFont("data/font/tiny5.ttf", 8.0f);
 
         Entity* cauldron { CreateEntity(EntityKind::Cauldron) };
         if (cauldron)

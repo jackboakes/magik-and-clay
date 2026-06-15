@@ -128,7 +128,7 @@ namespace D3D11
             if (error.empty())
             {
                 Microsoft::WRL::ComPtr<ID3DBlob> vsError;
-                HRESULT vsResult { D3DCompileFromFile(L"../data/shaders/basicvs.hlsl", 0, 0, "VSMain", "vs_5_0", 0, 0, &vertexShaderCSO, &vsError) };
+                HRESULT vsResult { D3DCompileFromFile(L"data/shaders/basicvs.hlsl", 0, 0, "VSMain", "vs_5_0", 0, 0, &vertexShaderCSO, &vsError) };
 
                 if (vsResult != S_OK)
                     error = L"D3D11: Failed to compile vertex shader";
@@ -137,7 +137,7 @@ namespace D3D11
             if (error.empty())
             {
                 Microsoft::WRL::ComPtr<ID3DBlob> psError;
-                HRESULT psResult { D3DCompileFromFile(L"../data/shaders/basicps.hlsl", 0, 0, "PSMain", "ps_5_0", 0, 0, &pixelShaderCSO, &psError) };
+                HRESULT psResult { D3DCompileFromFile(L"data/shaders/basicps.hlsl", 0, 0, "PSMain", "ps_5_0", 0, 0, &pixelShaderCSO, &psError) };
 
                 if (psResult != S_OK)
                 {

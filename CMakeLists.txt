@@ -111,4 +111,12 @@ if(MSVC)
 	/permissive-)
     # Sets the Visual Studio startup project to our poject otherwise it will default to ALL_BUILD
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+	# Move exe to root
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}
+        VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+
 endif()
