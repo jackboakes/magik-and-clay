@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/types.h"
+#include "common/ring_buffer.h"
 
 #include <array>
 #include <string>
@@ -25,8 +26,7 @@ struct SysEvent
     Vec2F32 scroll;
 };
 
-// TODO:: replace this with a fixed size ring buffer can't have heap alloc in hot path
-inline std::vector<SysEvent> sysEventQueue;
+inline RingBuffer<SysEvent, 128> sysEventBuffer;
 
 // push keys from events into here
 inline std::array<bool, static_cast<size_t>(Key::COUNT)> keyStateCurrent {};

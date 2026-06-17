@@ -20,6 +20,7 @@ if(WIN32)
 	code/common/types.h
 	code/common/utils.cpp
 	code/common/utils.h
+	code/common/ring_buffer.h
 	code/game/game.cpp
 	code/game/game.h
 	code/renderer/renderer.cpp
@@ -47,6 +48,7 @@ if(WIN32)
 		code/common/types.h
 		code/common/utils.h
 		code/common/utils.cpp
+		code/common/ring_buffer.h
 	)
 
 	source_group("game" FILES

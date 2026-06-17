@@ -4,15 +4,16 @@ namespace Input
 {
     void QueueSysEvent(SysEvent sysEvent)
     {
-        sysEventQueue.push_back(sysEvent);
+        sysEventBuffer.Write(sysEvent);
     }
 
     // TODO:: Unsure if this is the final resting place for this code
     void ProcessEvents()
     {
         keyStatePrevious = keyStateCurrent;
-        for (const auto& event : sysEventQueue)
+        while(!sysEventBuffer.Empty())
         {
+            SysEvent event { sysEventBuffer.Read() };
             switch (event.type)
             {
                 //TODO:: This is temporary as the user can skip keys if the user presses and releases on the same frame.
@@ -36,13 +37,8 @@ namespace Input
                     Input::mousePosition = event.position;
                 }
                 break;
-                default:
-                {
-                }
-                break;
             }
         }
-        sysEventQueue.clear();
     }
 
     constexpr std::string StringFromKey(Key key)

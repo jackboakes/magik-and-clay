@@ -20,7 +20,7 @@ Here's what I've implemented so far:
 <img width="1919" height="1079" alt="game engine protoype as of 150626" src="https://github.com/user-attachments/assets/33790b74-fa01-4bec-bc93-7caf3ba46141" />
 
 ## Usage
-If you want to build the project you'll need to be on windows with CMake 3.12+.
+**NOTE: Currently, only windows is supported with MSVC compiler and CMake 3.12+.**  
 ```
 git clone https://github.com/jackboakes/magik-and-clay.git
 cd magik-and-clay
