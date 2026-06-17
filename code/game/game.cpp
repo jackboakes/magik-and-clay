@@ -222,7 +222,7 @@ namespace Game
                 return path;
             }
 
-            std::vector<Vec2S32> delta { {0, -1}, {1, -1,}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1} };
+            constexpr std::array<Vec2S32, 8> delta { { {0,-1}, {1,-1}, {1,0}, {1,1}, {0,1}, {-1,1}, {-1,0}, {-1,-1} } };
 
             for (S32 i { 0 }; i < 8; i++)
             {
