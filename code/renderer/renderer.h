@@ -4,7 +4,6 @@
 #include "camera/camera.h"
 
 #include <string_view>
-#include <vector>
 #include <array>
 #include <filesystem>
 
@@ -25,10 +24,13 @@ struct SpriteInstance
     RectF32 source;
 };
 
+inline constexpr size_t g_maxSpritesPerPass { 2048 };
+
 struct RenderPass
 {
     HMM_Mat4 viewProjection;
-    std::vector<SpriteInstance> sprites;
+    std::array<SpriteInstance, g_maxSpritesPerPass> sprites;
+    size_t spriteCount { 0 };
 };
 
 struct Glyph

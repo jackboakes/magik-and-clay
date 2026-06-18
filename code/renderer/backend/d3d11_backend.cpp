@@ -409,17 +409,17 @@ namespace D3D11
             }
 
             size_t i { 0 };
-            while (i < pass.sprites.size())
+            while (i < pass.spriteCount)
             {
                 U32 currentTexture { pass.sprites[i].texture.handle };
                 auto& textureSRV { textureStorage[currentTexture] };
                 context->PSSetShaderResources(0, 1, textureSRV.GetAddressOf());
 
-                while (i < pass.sprites.size() && pass.sprites[i].texture.handle == currentTexture)
+                while (i < pass.spriteCount && pass.sprites[i].texture.handle == currentTexture)
                 {
                     size_t batchCount { 0 };
 
-                    while (batchCount < MAX_SPRITES && i < pass.sprites.size() && pass.sprites[i].texture.handle == currentTexture)
+                    while (batchCount < MAX_SPRITES && i < pass.spriteCount && pass.sprites[i].texture.handle == currentTexture)
                     {
                         const SpriteInstance& sprite { pass.sprites[i] };
 

@@ -13,7 +13,8 @@
 #include "stb_truetype.h"
 
 #include <algorithm>
-
+#include <cassert>
+#include <vector>
 
 
 namespace Renderer
@@ -94,7 +95,10 @@ namespace Renderer
             sprite.source.height = height;
             sprite.source.x = 0;
             sprite.source.y = 0;
-            s_activePass->sprites.push_back(sprite);
+
+            assert(g_maxSpritesPerPass != s_activePass->spriteCount && "Attempting to draw into full array of sprites");
+            s_activePass->sprites[s_activePass->spriteCount] = sprite;
+            s_activePass->spriteCount++;
         }
         // TODO:: logging
     }
@@ -109,7 +113,10 @@ namespace Renderer
             sprite.width = width;
             sprite.height = height;
             sprite.source = source;
-            s_activePass->sprites.push_back(sprite);
+
+            assert(g_maxSpritesPerPass != s_activePass->spriteCount && "Attempting to draw into full array of sprites");
+            s_activePass->sprites[s_activePass->spriteCount] = sprite;
+            s_activePass->spriteCount++;
         }
         // TODO:: logging
     }
@@ -217,18 +224,16 @@ namespace Renderer
     
     void BeginModeScreenSpace()
     {
-        RenderPass pass;
+        RenderPass& pass { s_passes.emplace_back() };
         pass.viewProjection = HMM_Orthographic_LH_ZO(0.0f, s_width, s_height, 0.0f, 0.0f, 100.0f);
-        s_passes.push_back(pass);
-        s_activePass = &s_passes.back();
+        s_activePass = &pass;
     }
 
     void BeginModeWorldSpace(const Camera& camera)
     {
-        RenderPass pass;
+        RenderPass& pass { s_passes.emplace_back() };
         pass.viewProjection = ViewProjectionFromCamera(camera, s_width, s_height);
-        s_passes.push_back(pass);
-        s_activePass = &s_passes.back();
+        s_activePass = &pass;
     }
 
     void EndMode()
@@ -241,7 +246,7 @@ namespace Renderer
         for (RenderPass& pass : s_passes)
         {
             // TODO:: could collect the order of textures as the user calls drawsprite instead of logn sorting by handle
-            std::sort(pass.sprites.begin(), pass.sprites.end(), [](const SpriteInstance& a, const SpriteInstance& b) 
+            std::sort(pass.sprites.begin(), pass.sprites.begin() + pass.spriteCount, [](const SpriteInstance& a, const SpriteInstance& b) 
             {
                 return a.texture.handle > b.texture.handle;
             });
