@@ -162,6 +162,7 @@ namespace D3D11
                     { "INST_SRCPOS",   0, DXGI_FORMAT_R32G32_FLOAT,       1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
                     { "INST_TEXSIZE",  0, DXGI_FORMAT_R32G32_FLOAT,       1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
                     { "INST_SPRSIZE",  0, DXGI_FORMAT_R32G32_FLOAT,       1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+                    { "INST_COLOUR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 }
                 };
 
                 device->CreateInputLayout(layoutDesc, ARRAYSIZE(layoutDesc), vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), &inputLayout);
@@ -430,6 +431,7 @@ namespace D3D11
                         spriteBuffer[batchCount].sourcePos = { sprite.source.x, sprite.source.y };
                         spriteBuffer[batchCount].textureSize = { static_cast<F32>(sprite.texture.width), static_cast<F32>(sprite.texture.height) };
                         spriteBuffer[batchCount].spriteSize = { sprite.source.width, sprite.source.height };
+                        spriteBuffer[batchCount].colour = sprite.colour;
 
                         batchCount++;
                         i++;

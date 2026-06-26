@@ -15,6 +15,14 @@ struct Texture
     S32 height;
 };
 
+struct Colour
+{
+    U8 r;
+    U8 g;
+    U8 b;
+    U8 a { 255 };
+};
+
 struct SpriteInstance
 {
     Texture texture;
@@ -22,6 +30,7 @@ struct SpriteInstance
     F32 width;
     F32 height;
     RectF32 source;
+    Colour colour;
 };
 
 inline constexpr size_t g_maxSpritesPerPass { 2048 };
@@ -65,8 +74,8 @@ namespace Renderer
 
     Texture LoadTexture(std::string_view path);
 
-    void DrawSprite(Texture texture, Vec3F32 position, F32 width, F32 height);
-    void DrawSprite(Texture texture, Vec3F32 position, float width, float height, const RectF32& source);
+    void DrawSprite(Texture texture, Vec3F32 position, F32 width, F32 height, Colour tint);
+    void DrawSprite(Texture texture, Vec3F32 position, float width, float height, const RectF32& source, Colour tint);
 
     Font LoadFont(std::filesystem::path filePath, F32 size);
     void DrawText(const Font& font, std::string_view text, F32 x, F32 y, S32 size);

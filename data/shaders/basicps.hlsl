@@ -5,12 +5,14 @@ struct PSInput
 {
     float4 position : SV_POSITION;
     float2 uv : TEXCOORD;
+    float4 colour : COLOUR;
 };
 
 float4 PSMain(PSInput input) : SV_TARGET
 {
     float4 color = tex.Sample(pointsampler, input.uv);
-    
+    color.rgb *= input.colour.rgb;
+
     if (color.a == 0)
         discard;
     

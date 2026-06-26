@@ -832,7 +832,7 @@ namespace Game
                             continue;
                         }
                         RectF32 dest { static_cast<F32>(x * g_TileSize), static_cast<F32>(y * g_TileSize), g_TileSize, g_TileSize };
-                        Renderer::DrawSprite(g_TileTextures[static_cast<size_t>(tile.kind)], {dest.x, dest.y, 100.0f}, dest.width, dest.height);
+                        Renderer::DrawSprite(g_TileTextures[static_cast<size_t>(tile.kind)], {dest.x, dest.y, 100.0f}, dest.width, dest.height, {255,255,255});
                     }
                 }
 
@@ -875,7 +875,7 @@ namespace Game
 
                         if (visible)
                         {
-                            Renderer::DrawSprite(gameState.interactableTexture, { dest.x, dest.y, 0.0f }, dest.width, dest.height);
+                            Renderer::DrawSprite(gameState.interactableTexture, { dest.x, dest.y, 0.0f }, dest.width, dest.height,{255,255,255});
                         }
                     }
                 }

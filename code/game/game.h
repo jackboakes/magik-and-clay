@@ -126,8 +126,8 @@ struct Entity
             destination.height = height;
             destination.x = entity.position.x;
             destination.y = entity.position.y;
-
-            Renderer::DrawSprite(entity.texture, { destination.x, destination.y, 1.0f - (entity.position.y / (g_TileMapHeight * g_TileSize)) }, destination.width, destination.height, source);
+            Colour colour { 255, 255, 255 };
+            Renderer::DrawSprite(entity.texture, { destination.x, destination.y, 1.0f - (entity.position.y / (g_TileMapHeight * g_TileSize)) }, destination.width, destination.height, source, colour);
         } };
 
     inline bool HasFlag(U32 flag) const

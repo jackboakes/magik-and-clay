@@ -82,7 +82,7 @@ namespace Renderer
     }
 
 
-    void DrawSprite(Texture texture, Vec3F32 position, F32 width, F32 height)
+    void DrawSprite(Texture texture, Vec3F32 position, F32 width, F32 height, Colour tint)
     {
         if (s_activePass)
         {
@@ -95,6 +95,7 @@ namespace Renderer
             sprite.source.height = height;
             sprite.source.x = 0;
             sprite.source.y = 0;
+            sprite.colour = tint;
 
             assert(g_maxSpritesPerPass != s_activePass->spriteCount && "Attempting to draw into full array of sprites");
             s_activePass->sprites[s_activePass->spriteCount] = sprite;
@@ -103,7 +104,7 @@ namespace Renderer
         // TODO:: logging
     }
 
-    void DrawSprite(Texture texture, Vec3F32 position, float width, float height, const RectF32& source)
+    void DrawSprite(Texture texture, Vec3F32 position, float width, float height, const RectF32& source, Colour tint)
     {
         if (s_activePass)
         {
@@ -113,6 +114,7 @@ namespace Renderer
             sprite.width = width;
             sprite.height = height;
             sprite.source = source;
+            sprite.colour = tint;
 
             assert(g_maxSpritesPerPass != s_activePass->spriteCount && "Attempting to draw into full array of sprites");
             s_activePass->sprites[s_activePass->spriteCount] = sprite;
@@ -208,7 +210,7 @@ namespace Renderer
             dest.width = floorf(glpyh.source.width * scale);
             dest.height = floorf(glpyh.source.height * scale);
 
-            Renderer::DrawSprite(font.atlas, { dest.x, dest.y, 0.0f }, dest.width, dest.height, glpyh.source);
+            Renderer::DrawSprite(font.atlas, { dest.x, dest.y, 0.0f }, dest.width, dest.height, glpyh.source, {255, 255, 255});
 
             textOffsetX += glpyh.advanceX * scale;
         }

@@ -7,6 +7,7 @@ struct VSInput
 {
     float3 position: POSITION;
     float2 uv : TEXCOORD;
+    
 };
 
 struct InstanceInput
@@ -15,13 +16,15 @@ struct InstanceInput
     float2 sourcePos : INST_SRCPOS;
     float2 textureSize : INST_TEXSIZE;
     float2 spriteSize : INST_SPRSIZE;
+    float4 colour : INST_COLOUR;
 };
 
 struct VSOutput
 {
     float4 position: SV_Position;
     float2 uv : TEXCOORD;
-};
+    float4 colour : COLOUR;
+    };
 
 VSOutput VSMain(VSInput input, InstanceInput instance)
 {
@@ -32,6 +35,7 @@ VSOutput VSMain(VSInput input, InstanceInput instance)
     float4 position = float4(input.position, 1.0f);
     output.position = mul(viewProjection, mul(instance.model, position));
     output.uv = sourcePixels / instance.textureSize;
+    output.colour = instance.colour;
 
     return output;
 }

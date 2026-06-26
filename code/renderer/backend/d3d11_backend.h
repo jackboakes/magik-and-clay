@@ -19,15 +19,12 @@ struct InstanceData
     HMM_Vec2 sourcePos;
     HMM_Vec2 textureSize;
     HMM_Vec2 spriteSize;
+    Colour colour;
 };
 
 struct Constants
 {
-    //HMM_Mat4 model;
     HMM_Mat4 viewProjection;
-    //HMM_Vec2 sourcePosition;
-    //HMM_Vec2 textureSize;
-    //HMM_Vec2 spriteSize;
 };
 
 struct Vertex
