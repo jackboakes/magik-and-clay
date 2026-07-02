@@ -27,6 +27,8 @@ namespace Renderer
     static U64 endPreviousFrameTime { 0 };
     static S32 fps { 0 };
 
+    static Texture whitePixel;
+
     void WindowCreate(S32 width, S32 height, std::wstring_view title)
     {
         s_width = static_cast<F32>(width);
@@ -43,6 +45,13 @@ namespace Renderer
         D3D11::WindowEquip(D3D11::window.handle);
 
         ShowWindow(D3D11::window.handle, SW_SHOW);
+
+        // init white square
+        U8 whitePixelData[] { 0xFF, 0xFF, 0xFF, 0xFF };
+        U8* whitePix { whitePixelData };
+        whitePixel.handle = D3D11::CreateTexture(whitePix, 1, 1);
+        whitePixel.width = 1;
+        whitePixel.height = 1;
     }
 
     S32 GetFPS()
@@ -80,7 +89,6 @@ namespace Renderer
         stbi_image_free(textureData);
         return texture;
     }
-
 
     void DrawSprite(Texture texture, Vec3F32 position, F32 width, F32 height, Colour tint)
     {
@@ -121,6 +129,23 @@ namespace Renderer
             s_activePass->spriteCount++;
         }
         // TODO:: logging
+    }
+
+    void DrawRectangle(Vec3F32 position, float width, float height, Colour tint)
+    {
+        DrawSprite(whitePixel, position, width, height, tint);
+    }
+
+    void DrawRectangleLines(Vec3F32 position, float width, float height, S32 thickness, Colour tint)
+    {
+        //top
+        DrawSprite(whitePixel, position, width, thickness, tint);
+        // left
+        DrawSprite(whitePixel, { position.x, position.y + thickness, position.z }, thickness, height - 2 * thickness, tint);
+        // bottom
+        DrawSprite(whitePixel, { position.x, position.y + height - thickness, position.z }, width, thickness, tint);
+        // right
+        DrawSprite(whitePixel, { position.x + width - thickness, position.y + thickness, position.z }, thickness, height - 2 * thickness, tint);
     }
 
     Font LoadFont(std::filesystem::path filePath, F32 size)

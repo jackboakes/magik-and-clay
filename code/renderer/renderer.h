@@ -76,7 +76,8 @@ namespace Renderer
 
     void DrawSprite(Texture texture, Vec3F32 position, F32 width, F32 height, Colour tint);
     void DrawSprite(Texture texture, Vec3F32 position, float width, float height, const RectF32& source, Colour tint);
-
+    void DrawRectangle(Vec3F32 position, float width, float height, Colour tint);
+    void DrawRectangleLines(Vec3F32 position, float width, float height, S32 thickness, Colour tint);
     Font LoadFont(std::filesystem::path filePath, F32 size);
     void DrawText(const Font& font, std::string_view text, F32 x, F32 y, S32 size);
 
